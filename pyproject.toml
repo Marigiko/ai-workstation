@@ -1,0 +1,62 @@
+[project]
+name = "ai-workstation"
+version = "0.1.0"
+description = "AI Engineering Platform"
+requires-python = ">=3.11"
+readme = "README.md"
+
+[tool.uv.workspace]
+members = [
+    "apps/*",
+    "packages/*",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=5.0.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+    "httpx>=0.28.1",
+    "aiosqlite>=0.22.1",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "A", "C4", "SIM"]
+ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["contracts", "gateway", "cli"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+pythonpath = [
+    "packages/contracts/src",
+    "packages/conversation/src",
+    "packages/providers/src",
+    "apps/gateway/src",
+]

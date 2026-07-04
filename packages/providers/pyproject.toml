@@ -1,0 +1,19 @@
+[project]
+name = "providers"
+version = "0.1.0"
+description = "AI Workstation providers package"
+requires-python = ">=3.11"
+dependencies = [
+    "contracts",
+    "litellm>=1.40.0",
+]
+
+[tool.uv.sources]
+contracts = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/providers"]
