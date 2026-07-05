@@ -3,10 +3,16 @@ name = "skills"
 version = "0.1.0"
 description = "AI Workstation skills package"
 requires-python = ">=3.11"
-dependencies = ["contracts"]
+dependencies = [
+    "contracts",
+    "providers",
+    "mcp",
+]
 
 [tool.uv.sources]
 contracts = { workspace = true }
+providers = { workspace = true }
+mcp = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

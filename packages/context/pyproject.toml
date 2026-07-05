@@ -3,7 +3,16 @@ name = "context"
 version = "0.1.0"
 description = "AI Workstation context package"
 requires-python = ">=3.11"
-dependencies = ["contracts"]
+dependencies = [
+    "contracts",
+    "tree-sitter>=0.22.0",
+    "tree-sitter-python>=0.21.0",
+    "tree-sitter-javascript>=0.21.0",
+    "tree-sitter-typescript>=0.21.0",
+    "qdrant-client>=1.9.0",
+    "tiktoken>=0.7.0",
+    "aiofiles>=24.1.0",
+]
 
 [tool.uv.sources]
 contracts = { workspace = true }

@@ -1,3 +1,29 @@
-"""AI Workstation Skills package."""
+"""Skills package for defining and executing reusable AI capabilities."""
 
-__version__ = "0.1.0"
+from skills.builtin import (
+    ALL_BUILTIN_SKILLS,
+    CODE_REVIEW_SKILL,
+    REFACTOR_SKILL,
+    TEST_GENERATION_SKILL,
+)
+from skills.executor import SkillExecutor
+from skills.models import (
+    SkillDefinition,
+    SkillExecutionRequest,
+    SkillExecutionResult,
+    ToolBinding,
+)
+from skills.registry import SkillRegistry
+
+__all__ = [
+    "ALL_BUILTIN_SKILLS",
+    "CODE_REVIEW_SKILL",
+    "REFACTOR_SKILL",
+    "SkillDefinition",
+    "SkillExecutionRequest",
+    "SkillExecutionResult",
+    "SkillExecutor",
+    "SkillRegistry",
+    "TEST_GENERATION_SKILL",
+    "ToolBinding",
+]

@@ -58,5 +58,13 @@ pythonpath = [
     "packages/contracts/src",
     "packages/conversation/src",
     "packages/providers/src",
+    "packages/context/src",
+    "packages/routing/src",
+    "packages/mcp/src",
+    "packages/skills/src",
+    "packages/memory/src",
+    "packages/evaluation/src",
+    "packages/observability/src",
     "apps/gateway/src",
+    "apps/cli/src",
 ]

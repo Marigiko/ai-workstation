@@ -9,12 +9,26 @@ dependencies = [
     "contracts",
     "providers",
     "conversation",
+    "context",
+    "routing",
+    "mcp",
+    "skills",
+    "memory",
+    "evaluation",
+    "observability",
 ]
 
 [tool.uv.sources]
 contracts = { workspace = true }
 providers = { workspace = true }
 conversation = { workspace = true }
+context = { workspace = true }
+routing = { workspace = true }
+mcp = { workspace = true }
+skills = { workspace = true }
+memory = { workspace = true }
+evaluation = { workspace = true }
+observability = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

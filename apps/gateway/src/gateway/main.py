@@ -5,7 +5,18 @@ from contextlib import asynccontextmanager
 from conversation import close_db, init_db
 from fastapi import FastAPI
 
-from gateway.routes import chat, health, sessions
+from gateway.routes import (
+    chat,
+    context,
+    evaluation,
+    health,
+    memory,
+    observability,
+    sessions,
+    skills,
+    tools,
+)
+from gateway.routes import router as router_routes
 
 
 @asynccontextmanager
@@ -30,6 +41,13 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(chat.router)
     app.include_router(sessions.router)
+    app.include_router(context.router)
+    app.include_router(router_routes.router)
+    app.include_router(tools.router)
+    app.include_router(skills.router)
+    app.include_router(memory.router)
+    app.include_router(evaluation.router)
+    app.include_router(observability.router)
 
     return app
 
