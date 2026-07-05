@@ -137,6 +137,24 @@ uv sync --all-packages
 
 After installation, the `ai` command is available globally.
 
+### Database Migrations
+
+Tables are created automatically when the gateway starts. For future migrations:
+
+```bash
+# Create new migration
+uv run alembic revision --autogenerate -m "description"
+
+# Apply migrations
+uv run alembic upgrade head
+
+# Revert last migration
+uv run alembic downgrade -1
+
+# Check migration status
+uv run alembic current
+```
+
 ## Configuration
 
 Set the gateway URL via environment variable:

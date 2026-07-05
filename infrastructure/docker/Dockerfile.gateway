@@ -1,0 +1,59 @@
+# Multi-stage build for AI Workstation Gateway
+FROM python:3.11-slim as builder
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+COPY packages/contracts/pyproject.toml ./packages/contracts/
+COPY packages/conversation/pyproject.toml ./packages/conversation/
+COPY packages/providers/pyproject.toml ./packages/providers/
+COPY packages/context/pyproject.toml ./packages/context/
+COPY packages/routing/pyproject.toml ./packages/routing/
+COPY packages/mcp/pyproject.toml ./packages/mcp/
+COPY packages/skills/pyproject.toml ./packages/skills/
+COPY packages/memory/pyproject.toml ./packages/memory/
+COPY packages/evaluation/pyproject.toml ./packages/evaluation/
+COPY packages/observability/pyproject.toml ./packages/observability/
+COPY apps/gateway/pyproject.toml ./apps/gateway/
+
+# Install dependencies
+RUN uv sync --frozen --no-dev
+
+# Copy source code
+COPY packages/ ./packages/
+COPY apps/gateway/ ./apps/gateway/
+
+# Final stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /app/.venv /app/.venv
+
+# Copy application code
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/gateway ./apps/gateway
+
+# Add virtual environment to PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+
+# Run application
+CMD ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -37,7 +37,8 @@ uv sync --all-packages
 # Iniciar infraestructura (PostgreSQL, Redis, Qdrant)
 docker compose -f infrastructure/compose/docker-compose.yml up -d
 
-# Ejecutar migraciones de base de datos
+# Las tablas se crean automáticamente al iniciar el gateway
+# Para migraciones futuras, usar:
 uv run alembic upgrade head
 
 # Iniciar el gateway
