@@ -16,6 +16,7 @@ dependencies = [
     "memory",
     "evaluation",
     "observability",
+    "pipeline",
 ]
 
 [tool.uv.sources]
@@ -29,6 +30,7 @@ skills = { workspace = true }
 memory = { workspace = true }
 evaluation = { workspace = true }
 observability = { workspace = true }
+pipeline = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

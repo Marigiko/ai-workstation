@@ -61,34 +61,39 @@ open http://localhost:8000/docs
 
 ```bash
 # Ver estado del gateway
-ai status
+uv run ai status
 
 # Chat con el LLM
-ai chat "¿Qué es Python?"
+uv run ai chat "¿Qué es Python?"
 
 # Gestionar sesiones
-ai session create --title "Mi Proyecto"
-ai session list
-ai session show <session-id>
+uv run ai session create --title "Mi Proyecto"
+uv run ai session list
+uv run ai session show <session-id>
 
 # Ejecutar herramientas
-ai tools list
-ai tools exec filesystem --params '{"operation": "read", "path": "/test.txt"}'
+uv run ai tools list
+uv run ai tools exec filesystem --params '{"operation": "read", "path": "/test.txt"}'
 
 # Ejecutar skills
-ai skills list
-ai skills exec code-review --vars '{"code": "def test(): pass"}'
+uv run ai skills list
+uv run ai skills exec code-review --vars '{"code": "def test(): pass"}'
 
 # Gestionar memoria
-ai memory remember "Usuario prefiere Python" --scope global
-ai memory recall "preferencias Python" --scope global
+uv run ai memory remember "Usuario prefiere Python" --scope global
+uv run ai memory recall "preferencias Python" --scope global
 
 # Evaluar respuestas
-ai eval run --query "¿Qué es Python?" --response "Python es un lenguaje" --metrics relevance,grounding
+uv run ai eval run --query "¿Qué es Python?" --response "Python es un lenguaje" --metrics relevance,grounding
 
 # Ver métricas
-ai metrics
+uv run ai metrics
+
+# Ver ayuda completa
+uv run ai --help
 ```
+
+**Nota:** Si prefieres usar `ai` directamente sin `uv run`, consulta la [documentación del CLI](apps/cli/README.md) para instrucciones de instalación global.
 
 ### API REST
 

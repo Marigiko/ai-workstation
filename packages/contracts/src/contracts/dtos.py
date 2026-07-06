@@ -187,3 +187,35 @@ class EvalResult(BaseModel):
     metrics: dict[str, float] = Field(default_factory=dict)
     details: dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+# ============================================================================
+# Tiered Routing
+# ============================================================================
+
+
+class Tier(BaseModel):
+    name: str
+    models: list[str]
+    token_budget: int = -1
+
+
+class AgentModelConfig(BaseModel):
+    agent_type: str
+    tiers: list[Tier]
+
+
+class TokenBudget(BaseModel):
+    tier_name: str
+    limit: int
+    consumed: int = 0
+
+    @property
+    def remaining(self) -> int:
+        if self.limit < 0:
+            return 999_999_999
+        return max(0, self.limit - self.consumed)
+
+    @property
+    def is_exhausted(self) -> bool:
+        return self.remaining <= 0

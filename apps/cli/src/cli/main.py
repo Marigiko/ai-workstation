@@ -42,7 +42,7 @@ def status():
     try:
         client = get_client()
         client.health_check()
-        console.print(Panel(f"[green]✓[/green] Gateway is healthy\nURL: {client.base_url}"))
+        console.print(Panel(f"[green][OK][/green] Gateway is healthy\nURL: {client.base_url}"))
     except Exception as e:
         handle_error(e)
 
@@ -81,7 +81,7 @@ def session_create(title: str | None = typer.Option(None, "--title", "-t", help=
     try:
         client = get_client()
         result = client.create_session(title)
-        console.print(f"[green]✓[/green] Created session: {result['id']}")
+        console.print(f"[green][OK][/green] Created session: {result['id']}")
         if title:
             console.print(f"  Title: {title}")
     except Exception as e:
@@ -144,7 +144,7 @@ def session_delete(session_id: str = typer.Argument(..., help="Session ID")):
     try:
         client = get_client()
         client.delete_session(session_id)
-        console.print(f"[green]✓[/green] Deleted session: {session_id}")
+        console.print(f"[green][OK][/green] Deleted session: {session_id}")
     except Exception as e:
         handle_error(e)
 
@@ -264,7 +264,7 @@ def memory_remember(
     try:
         client = get_client()
         result = client.remember(content, scope, project_id, session_id)
-        console.print(f"[green]✓[/green] Stored memory: {result['id']}")
+        console.print(f"[green][OK][/green] Stored memory: {result['id']}")
     except Exception as e:
         handle_error(e)
 

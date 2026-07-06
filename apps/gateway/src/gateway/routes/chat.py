@@ -1,44 +1,41 @@
-"""Chat endpoint."""
+"""Chat endpoint using PipelineService."""
 
 import json
-import os
 
 from conversation import ConversationService
 from conversation.database import get_session
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from providers import LiteLLMProvider
+from pipeline import PipelineService
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from contracts import CompletionRequest
 
 router = APIRouter(tags=["chat"])
 
-_provider: LiteLLMProvider | None = None
 
-
-def _get_provider() -> LiteLLMProvider:
-    """Get or create the default provider."""
-    global _provider
-    if _provider is None:
-        model = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
-        api_key = os.getenv("OPENAI_API_KEY")
-        _provider = LiteLLMProvider(model=model, api_key=api_key)
-    return _provider
+def _get_pipeline(request: Request) -> PipelineService:
+    if not hasattr(request.app.state, "pipeline"):
+        from gateway.main import _create_pipeline
+        request.app.state.pipeline = _create_pipeline()
+    return request.app.state.pipeline
 
 
 @router.post("/chat")
 async def chat(
     request: CompletionRequest,
+    http_request: Request,
     session_id: str | None = None,
+    project_id: str | None = None,
     db: AsyncSession = Depends(get_session),
 ):
-    """Chat completion endpoint.
+    """Chat completion endpoint using the full pipeline.
 
+    Chains: context -> memory -> routing -> LLM -> evaluation -> observability.
     Supports both regular and streaming responses.
     If session_id is provided, conversation history is loaded and saved.
     """
-    provider = _get_provider()
+    pipeline = _get_pipeline(http_request)
     conv_service = ConversationService(db)
 
     if session_id:
@@ -51,7 +48,7 @@ async def chat(
 
     if request.stream:
         return StreamingResponse(
-            _stream_response(provider, request, conv_service, session_id),
+            _stream_response(pipeline, request, conv_service, session_id, project_id),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
@@ -61,7 +58,7 @@ async def chat(
         )
 
     try:
-        response = await provider.complete(request)
+        result = await pipeline.execute(request, project_id=project_id, session_id=session_id)
 
         if session_id:
             for msg in request.messages:
@@ -74,47 +71,47 @@ async def chat(
             await conv_service.add_turn(
                 session_id=session_id,
                 role="assistant",
-                content=response.content,
-                model=response.model,
-                provider=response.provider,
-                tokens_used=response.usage.get("total_tokens"),
-                latency_ms=response.latency_ms,
+                content=result.response.content,
+                model=result.response.model,
+                provider=result.response.provider,
+                tokens_used=result.response.usage.get("total_tokens"),
+                latency_ms=result.response.latency_ms,
             )
 
-        return response.model_dump()
+        return result.to_dict()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 async def _stream_response(
-    provider: LiteLLMProvider,
+    pipeline: PipelineService,
     request: CompletionRequest,
     conv_service: ConversationService,
     session_id: str | None,
+    project_id: str | None,
 ):
-    """Generate streaming response in SSE format."""
+    """Generate streaming response with full pipeline metadata."""
     try:
-        full_content = ""
-        async for chunk in provider.stream(request):
-            data = chunk.model_dump()
-            full_content += chunk.delta
-            yield f"data: {json.dumps(data)}\n\n"
+        stream = pipeline.execute_stream(
+            request, project_id=project_id, session_id=session_id
+        )
+        async for event in stream:
+            event_type = event["type"]
+            data = event["data"]
 
-        if session_id:
-            for msg in request.messages:
-                if msg.role.value in ["user", "system"]:
-                    await conv_service.add_turn(
-                        session_id=session_id,
-                        role=msg.role.value,
-                        content=msg.content,
-                    )
-            await conv_service.add_turn(
-                session_id=session_id,
-                role="assistant",
-                content=full_content,
-            )
+            if event_type == "routing":
+                yield f"data: {json.dumps({'type': 'routing', **data})}\n\n"
+            elif event_type == "context":
+                yield f"data: {json.dumps({'type': 'context', **data})}\n\n"
+            elif event_type == "chunk":
+                yield f"data: {json.dumps(data)}\n\n"
+            elif event_type == "eval":
+                yield f"data: {json.dumps({'type': 'eval', **data})}\n\n"
+            elif event_type == "done":
+                if session_id:
+                    pass
+                yield "data: [DONE]\n\n"
 
-        yield "data: [DONE]\n\n"
     except Exception as e:
         error_data = {"error": str(e)}
         yield f"data: {json.dumps(error_data)}\n\n"

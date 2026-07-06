@@ -21,6 +21,7 @@ members = [
     "mcp",
     "memory",
     "observability",
+    "pipeline",
     "providers",
     "routing",
     "skills",
@@ -503,6 +504,7 @@ source = { editable = "packages/context" }
 dependencies = [
     { name = "aiofiles" },
     { name = "contracts" },
+    { name = "httpx" },
     { name = "qdrant-client" },
     { name = "tiktoken" },
     { name = "tree-sitter" },
@@ -515,6 +517,7 @@ dependencies = [
 requires-dist = [
     { name = "aiofiles", specifier = ">=24.1.0" },
     { name = "contracts", editable = "packages/contracts" },
+    { name = "httpx", specifier = ">=0.27.0" },
     { name = "qdrant-client", specifier = ">=1.9.0" },
     { name = "tiktoken", specifier = ">=0.7.0" },
     { name = "tree-sitter", specifier = ">=0.22.0" },
@@ -868,6 +871,7 @@ dependencies = [
     { name = "mcp" },
     { name = "memory" },
     { name = "observability" },
+    { name = "pipeline" },
     { name = "providers" },
     { name = "routing" },
     { name = "skills" },
@@ -884,6 +888,7 @@ requires-dist = [
     { name = "mcp", editable = "packages/mcp" },
     { name = "memory", editable = "packages/memory" },
     { name = "observability", editable = "packages/observability" },
+    { name = "pipeline", editable = "packages/pipeline" },
     { name = "providers", editable = "packages/providers" },
     { name = "routing", editable = "packages/routing" },
     { name = "skills", editable = "packages/skills" },
@@ -1543,10 +1548,14 @@ version = "0.1.0"
 source = { editable = "packages/mcp" }
 dependencies = [
     { name = "contracts" },
+    { name = "httpx" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "contracts", editable = "packages/contracts" }]
+requires-dist = [
+    { name = "contracts", editable = "packages/contracts" },
+    { name = "httpx", specifier = ">=0.27.0" },
+]
 
 [[package]]
 name = "mdurl"
@@ -1934,6 +1943,33 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5a/82/42f767fc1c1143d6fd36efb827202a2d997a375e160a71eb2888a925aac1/pathspec-1.1.1.tar.gz", hash = "sha256:17db5ecd524104a120e173814c90367a96a98d07c45b2e10c2f3919fff91bf5a", size = 135180, upload-time = "2026-04-27T01:46:08.907Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/d9/7fb5aa316bc299258e68c73ba3bddbc499654a07f151cba08f6153988714/pathspec-1.1.1-py3-none-any.whl", hash = "sha256:a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189", size = 57328, upload-time = "2026-04-27T01:46:07.06Z" },
+]
+
+[[package]]
+name = "pipeline"
+version = "0.1.0"
+source = { editable = "packages/pipeline" }
+dependencies = [
+    { name = "context" },
+    { name = "contracts" },
+    { name = "evaluation" },
+    { name = "mcp" },
+    { name = "memory" },
+    { name = "observability" },
+    { name = "providers" },
+    { name = "routing" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "context", editable = "packages/context" },
+    { name = "contracts", editable = "packages/contracts" },
+    { name = "evaluation", editable = "packages/evaluation" },
+    { name = "mcp", editable = "packages/mcp" },
+    { name = "memory", editable = "packages/memory" },
+    { name = "observability", editable = "packages/observability" },
+    { name = "providers", editable = "packages/providers" },
+    { name = "routing", editable = "packages/routing" },
 ]
 
 [[package]]
@@ -2524,10 +2560,14 @@ version = "0.1.0"
 source = { editable = "packages/routing" }
 dependencies = [
     { name = "contracts" },
+    { name = "httpx" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "contracts", editable = "packages/contracts" }]
+requires-dist = [
+    { name = "contracts", editable = "packages/contracts" },
+    { name = "httpx", specifier = ">=0.27.0" },
+]
 
 [[package]]
 name = "rpds-py"

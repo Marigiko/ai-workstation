@@ -1,0 +1,32 @@
+[project]
+name = "pipeline"
+version = "0.1.0"
+description = "AI Workstation pipeline orchestration package"
+requires-python = ">=3.11"
+dependencies = [
+    "contracts",
+    "providers",
+    "routing",
+    "context",
+    "memory",
+    "mcp",
+    "evaluation",
+    "observability",
+]
+
+[tool.uv.sources]
+contracts = { workspace = true }
+providers = { workspace = true }
+routing = { workspace = true }
+context = { workspace = true }
+memory = { workspace = true }
+mcp = { workspace = true }
+evaluation = { workspace = true }
+observability = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pipeline"]

@@ -13,6 +13,7 @@ from skills.models import (
     SkillExecutionResult,
     ToolBinding,
 )
+from skills.orchestrator import TaskOrchestrator, TaskStep
 from skills.registry import SkillRegistry
 
 __all__ = [
@@ -25,5 +26,7 @@ __all__ = [
     "SkillExecutor",
     "SkillRegistry",
     "TEST_GENERATION_SKILL",
+    "TaskOrchestrator",
+    "TaskStep",
     "ToolBinding",
 ]

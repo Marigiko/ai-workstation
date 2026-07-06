@@ -4,23 +4,30 @@ import os
 import uuid
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import Distance, FieldCondition, Filter, Match, PointStruct, VectorParams
 
+from context.embeddings.service import EmbeddingService
 from contracts import ContextChunk
 
 
 class EmbeddingPipeline:
     """Pipeline for generating and storing embeddings in Qdrant."""
 
-    def __init__(self, collection_name: str = "context"):
+    def __init__(
+        self,
+        collection_name: str = "context",
+        embedding_service: EmbeddingService | None = None,
+    ):
         """Initialize embedding pipeline.
 
         Args:
             collection_name: Name of Qdrant collection
+            embedding_service: Optional embedding service instance
         """
         self.collection_name = collection_name
         qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
         self.client = QdrantClient(url=qdrant_url)
+        self.embedding_service = embedding_service or EmbeddingService()
         self._ensure_collection()
 
     def _ensure_collection(self):
@@ -35,22 +42,19 @@ class EmbeddingPipeline:
             )
 
     async def embed_text(self, text: str) -> list[float]:
-        """Generate embedding for text using OpenAI.
-
-        Note: This is a placeholder. In production, use a proper embedding model.
-        """
-        import hashlib
-
-        hash_value = hashlib.md5(text.encode()).hexdigest()
-        return [float(int(hash_value[i : i + 2], 16)) / 255.0 for i in range(0, 32, 2)] * 48
+        """Generate embedding for text using OpenAI text-embedding-3-small."""
+        return await self.embedding_service.embed_single(text)
 
     async def store_chunks(self, chunks: list[ContextChunk], project_id: str):
         """Store context chunks with embeddings in Qdrant."""
+        if not chunks:
+            return
+
+        texts = [chunk.content for chunk in chunks]
+        embeddings = await self.embedding_service.embed(texts)
+
         points = []
-
-        for chunk in chunks:
-            embedding = await self.embed_text(chunk.content)
-
+        for chunk, embedding in zip(chunks, embeddings):
             point = PointStruct(
                 id=str(uuid.uuid4()),
                 vector=embedding,
@@ -72,11 +76,20 @@ class EmbeddingPipeline:
         """Search for relevant chunks using embeddings."""
         query_embedding = await self.embed_text(query)
 
+        query_filter = Filter(
+            must=[
+                FieldCondition(
+                    key="project_id",
+                    match=Match(value=project_id),
+                )
+            ]
+        )
+
         results = self.client.search(
             collection_name=self.collection_name,
             query_vector=query_embedding,
             limit=top_k,
-            query_filter={"project_id": project_id},
+            query_filter=query_filter,
         )
 
         chunks = []
@@ -95,3 +108,7 @@ class EmbeddingPipeline:
             )
 
         return chunks
+
+    async def close(self) -> None:
+        """Close embedding service."""
+        await self.embedding_service.close()

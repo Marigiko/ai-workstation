@@ -3,6 +3,7 @@
 __version__ = "0.1.0"
 
 from contracts.dtos import (
+    AgentModelConfig,
     CompletionRequest,
     CompletionResponse,
     ContextChunk,
@@ -20,6 +21,8 @@ from contracts.dtos import (
     Role,
     RoutingDecision,
     StreamChunk,
+    Tier,
+    TokenBudget,
     ToolResult,
 )
 from contracts.exceptions import (
@@ -39,6 +42,7 @@ from contracts.interfaces import (
 
 __all__ = [
     # DTOs
+    "AgentModelConfig",
     "CompletionRequest",
     "CompletionResponse",
     "ContextChunk",
@@ -56,6 +60,8 @@ __all__ = [
     "Role",
     "RoutingDecision",
     "StreamChunk",
+    "Tier",
+    "TokenBudget",
     "ToolResult",
     # Exceptions
     "ContractError",
