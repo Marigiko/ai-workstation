@@ -1,9 +1,32 @@
 """Shell tool for command execution with sandboxing."""
 
+import shlex
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from contracts import Tool, ToolResult
+
+# Commands that are always blocked regardless of arguments
+BLOCKED_BINARIES = {
+    "rm",
+    "mkfs",
+    "dd",
+    "chmod",
+    "chown",
+    "shutdown",
+    "reboot",
+    "halt",
+    "poweroff",
+    "su",
+    "sudo",
+    "mount",
+    "umount",
+    "fdisk",
+    "parted",
+    "iptables",
+    "ip6tables",
+}
 
 
 class ShellTool(Tool):
@@ -16,7 +39,7 @@ class ShellTool(Tool):
         "properties": {
             "command": {
                 "type": "string",
-                "description": "Shell command to execute",
+                "description": "Shell command to execute (will be split into arguments safely)",
             },
             "cwd": {
                 "type": "string",
@@ -30,26 +53,10 @@ class ShellTool(Tool):
         "required": ["command"],
     }
 
-    # Dangerous commands that should be blocked
-    BLOCKED_COMMANDS = {
-        "rm -rf /",
-        "rm -rf /*",
-        "mkfs",
-        "dd if=/dev/zero",
-        ":(){:|:&};:",  # Fork bomb
-        "chmod -R 777 /",
-        "chown -R",
-        "> /dev/sda",
-        "mv /",
-        "shutdown",
-        "reboot",
-        "halt",
-        "poweroff",
-    }
-
     def __init__(
         self,
         allowed_paths: list[str] | None = None,
+        allowed_commands: set[str] | None = None,
         blocked_commands: set[str] | None = None,
         timeout: int = 30,
     ):
@@ -57,11 +64,12 @@ class ShellTool(Tool):
 
         Args:
             allowed_paths: List of allowed working directories. If None, all paths allowed.
+            allowed_commands: Set of allowed command binaries. If None, uses safe defaults.
             blocked_commands: Set of blocked command patterns. If None, uses defaults.
             timeout: Default timeout in seconds.
         """
         self.allowed_paths = allowed_paths
-        self.blocked_commands = blocked_commands or self.BLOCKED_COMMANDS
+        self.allowed_commands = allowed_commands
         self.default_timeout = timeout
 
     def _is_path_allowed(self, path: str) -> bool:
@@ -69,7 +77,6 @@ class ShellTool(Tool):
         if not self.allowed_paths:
             return True
 
-        from pathlib import Path
         abs_path = Path(path).resolve()
         for allowed in self.allowed_paths:
             abs_allowed = Path(allowed).resolve()
@@ -80,26 +87,44 @@ class ShellTool(Tool):
                 continue
         return False
 
-    def _is_command_safe(self, command: str) -> bool:
-        """Check if command is safe to execute."""
-        command_lower = command.lower().strip()
+    def _parse_command(self, command: str) -> list[str] | None:
+        """Safely parse command string into argument list.
 
-        # Check for blocked commands
-        for blocked in self.blocked_commands:
-            if blocked in command_lower:
-                return False
+        Returns None if command contains shell operators or is unsafe.
+        """
+        command = command.strip()
+        if not command:
+            return None
 
-        # Check for dangerous patterns
-        dangerous_patterns = [
-            "sudo ",
-            "su ",
-            "| sudo",
-            "| su",
-            "eval ",
-            "exec ",
-        ]
+        # Block shell operators that enable injection
+        dangerous_operators = ["|", "&&", "||", ";", ">", ">>", "<", "$(", "`", "\n"]
+        for op in dangerous_operators:
+            if op in command:
+                return None
 
-        return all(pattern not in command_lower for pattern in dangerous_patterns)
+        try:
+            return shlex.split(command)
+        except ValueError:
+            return None
+
+    def _is_command_allowed(self, args: list[str]) -> bool:
+        """Check if the parsed command is allowed."""
+        if not args:
+            return False
+
+        # Get the base command name (without path)
+        cmd = args[0]
+        cmd_name = Path(cmd).name
+
+        # Check against blocked binaries
+        if cmd_name in BLOCKED_BINARIES:
+            return False
+
+        # If an allowlist is specified, check against it
+        if self.allowed_commands is not None:
+            return cmd_name in self.allowed_commands
+
+        return True
 
     async def execute(self, params: dict[str, Any]) -> ToolResult:
         """Execute shell command."""
@@ -123,18 +148,27 @@ class ShellTool(Tool):
                 error=f"Path not allowed: {cwd}",
             )
 
-        if not self._is_command_safe(command):
+        args = self._parse_command(command)
+        if args is None:
             return ToolResult(
                 tool_name=self.name,
                 success=False,
                 output=None,
-                error=f"Command blocked for security reasons: {command}",
+                error="Command contains unsafe shell operators and was blocked",
+            )
+
+        if not self._is_command_allowed(args):
+            return ToolResult(
+                tool_name=self.name,
+                success=False,
+                output=None,
+                error=f"Command not allowed: {args[0]}",
             )
 
         try:
             result = subprocess.run(
-                command,
-                shell=True,
+                args,
+                shell=False,
                 cwd=cwd,
                 capture_output=True,
                 text=True,

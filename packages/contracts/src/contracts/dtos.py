@@ -1,6 +1,6 @@
 """Data Transfer Objects for the AI Workstation platform."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -165,7 +165,7 @@ class MemoryEntry(BaseModel):
     scope: MemoryScope
     project_id: str | None = None
     session_id: str | None = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -186,7 +186,7 @@ class EvalResult(BaseModel):
     score: float
     metrics: dict[str, float] = Field(default_factory=dict)
     details: dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 # ============================================================================

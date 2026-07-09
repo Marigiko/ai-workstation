@@ -4,10 +4,12 @@ import os
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://ai_workstation:ai_workstation_dev@localhost:5432/ai_workstation",
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL environment variable is required. "
+        "Example: postgresql+asyncpg://user:pass@localhost:5432/ai_workstation"
+    )
 
 engine = create_async_engine(
     DATABASE_URL,
