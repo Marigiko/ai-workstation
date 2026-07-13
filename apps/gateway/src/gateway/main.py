@@ -17,6 +17,7 @@ from providers import LiteLLMProvider
 from routing import AgentRouter, ProviderRegistry
 
 from gateway.middleware import APIKeyMiddleware, ObservabilityMiddleware
+from gateway.middleware.rate_limit import RateLimitMiddleware
 from gateway.routes import (
     chat,
     context,
@@ -84,6 +85,10 @@ def create_app() -> FastAPI:
     api_keys = os.getenv("API_KEYS", "").split(",") if os.getenv("API_KEYS") else []
     if api_keys:
         app.add_middleware(APIKeyMiddleware, api_keys=api_keys)
+
+    rate_limit = os.getenv("RATE_LIMIT_RPM")
+    if rate_limit and rate_limit.isdigit():
+        app.add_middleware(RateLimitMiddleware, requests_per_minute=int(rate_limit))
 
     app.include_router(health.router)
     app.include_router(chat.router)

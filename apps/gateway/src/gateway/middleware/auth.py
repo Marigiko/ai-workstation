@@ -1,8 +1,9 @@
 """API key authentication middleware."""
 
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 
 class APIKeyMiddleware(BaseHTTPMiddleware):
@@ -25,9 +26,15 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         ).replace("Bearer ", "")
 
         if not api_key:
-            raise HTTPException(status_code=401, detail="API key required")
+            return JSONResponse(
+                {"error": {"code": "unauthorized", "message": "API key required"}},
+                status_code=401,
+            )
 
         if api_key not in self.api_keys:
-            raise HTTPException(status_code=403, detail="Invalid API key")
+            return JSONResponse(
+                {"error": {"code": "forbidden", "message": "Invalid API key"}},
+                status_code=403,
+            )
 
         return await call_next(request)

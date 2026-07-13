@@ -26,11 +26,11 @@ class Message(BaseModel):
 
 
 class CompletionRequest(BaseModel):
-    messages: list[Message]
+    messages: list[Message] = Field(..., min_length=1, max_length=100)
     model: str | None = None
     provider: str | None = None
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
-    max_tokens: int = Field(default=2048, gt=0)
+    max_tokens: int = Field(default=2048, gt=0, le=128000)
     stream: bool = False
     tools: list[dict[str, Any]] | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
