@@ -2,6 +2,11 @@
 
 import os
 
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql+asyncpg://ai_workstation:ai_workstation_dev@localhost:5432/ai_workstation",
+)
+
 from fastapi.testclient import TestClient
 
 from gateway.main import create_app

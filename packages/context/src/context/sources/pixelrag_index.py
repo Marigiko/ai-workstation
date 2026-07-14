@@ -47,7 +47,7 @@ class PixelRAGIndexBuilder:
             )
             response.raise_for_status()
             return response.json()
-        except httpx.HTTPError as e:
+        except Exception as e:
             logger.error("PixelRAG index_document failed for %s: %s", file_path, e)
             return {"error": str(e), "status": "failed"}
 
@@ -68,7 +68,7 @@ class PixelRAGIndexBuilder:
             )
             response.raise_for_status()
             return response.json()
-        except httpx.HTTPError as e:
+        except Exception as e:
             logger.error("PixelRAG index_url failed for %s: %s", url, e)
             return {"error": str(e), "status": "failed"}
 
@@ -112,7 +112,7 @@ class PixelRAGIndexBuilder:
             response = await self._client.get(f"{self.server_url}/health")
             response.raise_for_status()
             return True
-        except httpx.HTTPError:
+        except Exception:
             return False
 
     async def close(self) -> None:

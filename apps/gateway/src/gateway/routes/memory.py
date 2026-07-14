@@ -80,29 +80,32 @@ async def recall(
     Returns:
         List of matching memory entries
     """
-    service = _get_memory_service()
-    memories = await service.recall_memories(
-        query=query,
-        scope=scope,
-        limit=limit,
-        project_id=project_id,
-        session_id=session_id,
-    )
-    return {
-        "memories": [
-            {
-                "id": m.id,
-                "content": m.content,
-                "scope": m.scope.value,
-                "project_id": m.project_id,
-                "session_id": m.session_id,
-                "created_at": m.created_at.isoformat(),
-                "metadata": m.metadata,
-            }
-            for m in memories
-        ],
-        "count": len(memories),
-    }
+    try:
+        service = _get_memory_service()
+        memories = await service.recall_memories(
+            query=query,
+            scope=scope,
+            limit=limit,
+            project_id=project_id,
+            session_id=session_id,
+        )
+        return {
+            "memories": [
+                {
+                    "id": m.id,
+                    "content": m.content,
+                    "scope": m.scope.value,
+                    "project_id": m.project_id,
+                    "session_id": m.session_id,
+                    "created_at": m.created_at.isoformat(),
+                    "metadata": m.metadata,
+                }
+                for m in memories
+            ],
+            "count": len(memories),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/forget/{memory_id}")
@@ -115,9 +118,12 @@ async def forget(memory_id: str):
     Returns:
         Confirmation message
     """
-    service = _get_memory_service()
-    await service.forget_memory(memory_id)
-    return {"status": "success", "message": f"Memory {memory_id} forgotten"}
+    try:
+        service = _get_memory_service()
+        await service.forget_memory(memory_id)
+        return {"status": "success", "message": f"Memory {memory_id} forgotten"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/list")
@@ -138,28 +144,31 @@ async def list_memories(
     Returns:
         List of memory entries
     """
-    service = _get_memory_service()
-    memories = await service.list_memories(
-        scope=scope,
-        project_id=project_id,
-        session_id=session_id,
-        limit=limit,
-    )
-    return {
-        "memories": [
-            {
-                "id": m.id,
-                "content": m.content,
-                "scope": m.scope.value,
-                "project_id": m.project_id,
-                "session_id": m.session_id,
-                "created_at": m.created_at.isoformat(),
-                "metadata": m.metadata,
-            }
-            for m in memories
-        ],
-        "count": len(memories),
-    }
+    try:
+        service = _get_memory_service()
+        memories = await service.list_memories(
+            scope=scope,
+            project_id=project_id,
+            session_id=session_id,
+            limit=limit,
+        )
+        return {
+            "memories": [
+                {
+                    "id": m.id,
+                    "content": m.content,
+                    "scope": m.scope.value,
+                    "project_id": m.project_id,
+                    "session_id": m.session_id,
+                    "created_at": m.created_at.isoformat(),
+                    "metadata": m.metadata,
+                }
+                for m in memories
+            ],
+            "count": len(memories),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/get/{memory_id}")
@@ -172,17 +181,22 @@ async def get_memory(memory_id: str):
     Returns:
         Memory entry if found
     """
-    service = _get_memory_service()
-    memory = await service.get_memory(memory_id)
-    if not memory:
-        raise HTTPException(status_code=404, detail=f"Memory {memory_id} not found")
+    try:
+        service = _get_memory_service()
+        memory = await service.get_memory(memory_id)
+        if not memory:
+            raise HTTPException(status_code=404, detail=f"Memory {memory_id} not found")
 
-    return {
-        "id": memory.id,
-        "content": memory.content,
-        "scope": memory.scope.value,
-        "project_id": memory.project_id,
-        "session_id": memory.session_id,
-        "created_at": memory.created_at.isoformat(),
-        "metadata": memory.metadata,
-    }
+        return {
+            "id": memory.id,
+            "content": memory.content,
+            "scope": memory.scope.value,
+            "project_id": memory.project_id,
+            "session_id": memory.session_id,
+            "created_at": memory.created_at.isoformat(),
+            "metadata": memory.metadata,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e

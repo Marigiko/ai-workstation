@@ -14,14 +14,17 @@ async def create_session(
     db: AsyncSession = Depends(get_session),
 ):
     """Create a new conversation session."""
-    service = ConversationService(db)
-    session = await service.create_session(title=title)
-    return {
-        "id": session.id,
-        "title": session.title,
-        "created_at": session.created_at.isoformat(),
-        "updated_at": session.updated_at.isoformat(),
-    }
+    try:
+        service = ConversationService(db)
+        session = await service.create_session(title=title)
+        return {
+            "id": session.id,
+            "title": session.title,
+            "created_at": session.created_at.isoformat(),
+            "updated_at": session.updated_at.isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("")
@@ -31,17 +34,20 @@ async def list_sessions(
     db: AsyncSession = Depends(get_session),
 ):
     """List recent sessions."""
-    service = ConversationService(db)
-    sessions = await service.list_sessions(limit=limit, offset=offset)
-    return [
-        {
-            "id": s.id,
-            "title": s.title,
-            "created_at": s.created_at.isoformat(),
-            "updated_at": s.updated_at.isoformat(),
-        }
-        for s in sessions
-    ]
+    try:
+        service = ConversationService(db)
+        sessions = await service.list_sessions(limit=limit, offset=offset)
+        return [
+            {
+                "id": s.id,
+                "title": s.title,
+                "created_at": s.created_at.isoformat(),
+                "updated_at": s.updated_at.isoformat(),
+            }
+            for s in sessions
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/{session_id}")
@@ -50,30 +56,35 @@ async def get_session_endpoint(
     db: AsyncSession = Depends(get_session),
 ):
     """Get a session with all turns."""
-    service = ConversationService(db)
-    session = await service.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    try:
+        service = ConversationService(db)
+        session = await service.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
 
-    return {
-        "id": session.id,
-        "title": session.title,
-        "created_at": session.created_at.isoformat(),
-        "updated_at": session.updated_at.isoformat(),
-        "turns": [
-            {
-                "id": t.id,
-                "role": t.role,
-                "content": t.content,
-                "model": t.model,
-                "provider": t.provider,
-                "tokens_used": t.tokens_used,
-                "latency_ms": t.latency_ms,
-                "created_at": t.created_at.isoformat(),
-            }
-            for t in session.turns
-        ],
-    }
+        return {
+            "id": session.id,
+            "title": session.title,
+            "created_at": session.created_at.isoformat(),
+            "updated_at": session.updated_at.isoformat(),
+            "turns": [
+                {
+                    "id": t.id,
+                    "role": t.role,
+                    "content": t.content,
+                    "model": t.model,
+                    "provider": t.provider,
+                    "tokens_used": t.tokens_used,
+                    "latency_ms": t.latency_ms,
+                    "created_at": t.created_at.isoformat(),
+                }
+                for t in session.turns
+            ],
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/{session_id}")
@@ -82,8 +93,13 @@ async def delete_session(
     db: AsyncSession = Depends(get_session),
 ):
     """Delete a session."""
-    service = ConversationService(db)
-    deleted = await service.delete_session(session_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return {"deleted": True}
+    try:
+        service = ConversationService(db)
+        deleted = await service.delete_session(session_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return {"deleted": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e

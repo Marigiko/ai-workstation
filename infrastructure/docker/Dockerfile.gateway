@@ -7,26 +7,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
-COPY packages/contracts/pyproject.toml ./packages/contracts/
-COPY packages/conversation/pyproject.toml ./packages/conversation/
-COPY packages/providers/pyproject.toml ./packages/providers/
-COPY packages/context/pyproject.toml ./packages/context/
-COPY packages/routing/pyproject.toml ./packages/routing/
-COPY packages/mcp/pyproject.toml ./packages/mcp/
-COPY packages/skills/pyproject.toml ./packages/skills/
-COPY packages/memory/pyproject.toml ./packages/memory/
-COPY packages/evaluation/pyproject.toml ./packages/evaluation/
-COPY packages/observability/pyproject.toml ./packages/observability/
-COPY apps/gateway/pyproject.toml ./apps/gateway/
+# Copy entire workspace (pyproject.toml files + source)
+COPY . .
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
-
-# Copy source code
-COPY packages/ ./packages/
-COPY apps/gateway/ ./apps/gateway/
+# Install dependencies (gateway package only — not all workspace)
+RUN uv sync --frozen --no-dev --package gateway
 
 # Final stage
 FROM python:3.11-slim
@@ -56,4 +41,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
 # Run application
-CMD ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8000"]

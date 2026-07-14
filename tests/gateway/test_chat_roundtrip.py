@@ -1,10 +1,18 @@
 """End-to-end chat roundtrip test (requires gateway + valid API keys)."""
 
+import os
+
 import httpx
+import pytest
 
 GATEWAY_URL = "http://localhost:8000"
 
+_HAS_CHAT_KEYS = bool(
+    os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY") or os.getenv("GEMINI_API_KEY")
+)
 
+
+@pytest.mark.skipif(not _HAS_CHAT_KEYS, reason="No API keys configured in environment")
 def test_full_chat_roundtrip():
     """Simulates what Terax does when sending a chat request."""
     resp = httpx.post(

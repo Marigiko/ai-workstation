@@ -1,9 +1,9 @@
 """Qdrant-based memory store implementation."""
 
+import os
 from datetime import datetime
 
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+import httpx
 
 from contracts import MemoryEntry, MemoryScope
 
@@ -14,34 +14,46 @@ class QdrantMemoryStore:
     def __init__(
         self,
         collection_name: str = "memory",
-        qdrant_url: str = "http://localhost:6333",
-        embedding_dim: int = 1536,
+        qdrant_url: str | None = None,
+        embedding_dim: int = 768,
     ):
         """Initialize Qdrant memory store.
 
         Args:
             collection_name: Name of the Qdrant collection
-            qdrant_url: URL of Qdrant server
+            qdrant_url: URL of Qdrant server (defaults to QDRANT_URL env or http://localhost:6333)
             embedding_dim: Dimension of embedding vectors
         """
         self.collection_name = collection_name
         self.embedding_dim = embedding_dim
-        self.client = QdrantClient(url=qdrant_url)
+        url = qdrant_url or os.getenv("QDRANT_URL", "http://localhost:6333")
+        self.server_url = url.rstrip("/")
+        self._http = httpx.Client(base_url=self.server_url, timeout=30.0)
         self._ensure_collection()
+
+    def _qdrant_point_filter(self, conditions: dict) -> dict | None:
+        """Build a Qdrant 1.7-compatible filter (plain dict)."""
+        if not conditions:
+            return None
+        must = [{"key": k, "match": {"value": v}} for k, v in conditions.items()]
+        return {"must": must}
 
     def _ensure_collection(self):
         """Ensure the memory collection exists in Qdrant."""
-        collections = self.client.get_collections().collections
-        collection_names = [c.name for c in collections]
+        resp = self._http.get("/collections")
+        resp.raise_for_status()
+        collections = resp.json()["result"]["collections"]
+        collection_names = [c["name"] for c in collections]
 
         if self.collection_name not in collection_names:
-            self.client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=VectorParams(
-                    size=self.embedding_dim,
-                    distance=Distance.COSINE,
-                ),
-            )
+            body = {
+                "vectors": {
+                    "size": self.embedding_dim,
+                    "distance": "Cosine",
+                }
+            }
+            resp = self._http.put(f"/collections/{self.collection_name}", json=body)
+            resp.raise_for_status()
 
     def _generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for text.
@@ -61,10 +73,10 @@ class QdrantMemoryStore:
         """
         embedding = self._generate_embedding(entry.content)
 
-        point = PointStruct(
-            id=entry.id,
-            vector=embedding,
-            payload={
+        point = {
+            "id": entry.id,
+            "vector": embedding,
+            "payload": {
                 "content": entry.content,
                 "scope": entry.scope.value,
                 "project_id": entry.project_id,
@@ -72,12 +84,14 @@ class QdrantMemoryStore:
                 "created_at": entry.created_at.isoformat(),
                 "metadata": entry.metadata,
             },
-        )
+        }
 
-        self.client.upsert(
-            collection_name=self.collection_name,
-            points=[point],
+        body = {"points": [point]}
+        resp = self._http.put(
+            f"/collections/{self.collection_name}/points",
+            json=body,
         )
+        resp.raise_for_status()
 
     async def recall(
         self,
@@ -101,32 +115,40 @@ class QdrantMemoryStore:
         """
         query_embedding = self._generate_embedding(query)
 
-        # Build filter based on scope
-        query_filter = {"scope": scope.value}
-
+        conditions = {"scope": scope.value}
         if scope == MemoryScope.PROJECT and project_id:
-            query_filter["project_id"] = project_id
+            conditions["project_id"] = project_id
         elif scope == MemoryScope.SESSION and session_id:
-            query_filter["session_id"] = session_id
+            conditions["session_id"] = session_id
 
-        results = self.client.search(
-            collection_name=self.collection_name,
-            query_vector=query_embedding,
-            limit=limit,
-            query_filter=query_filter,
+        body = {
+            "vector": query_embedding,
+            "limit": limit,
+            "with_payload": True,
+            "with_vector": False,
+            "filter": self._qdrant_point_filter(conditions),
+        }
+
+        resp = self._http.post(
+            f"/collections/{self.collection_name}/points/search",
+            json=body,
         )
+        resp.raise_for_status()
+        hits = resp.json()["result"]
 
         memories = []
-        for result in results:
-            payload = result.payload
+        for result in hits:
+            payload = result.get("payload", {})
             memories.append(
                 MemoryEntry(
-                    id=str(result.id),
-                    content=payload["content"],
-                    scope=MemoryScope(payload["scope"]),
+                    id=str(result["id"]),
+                    content=payload.get("content", ""),
+                    scope=MemoryScope(payload.get("scope", "global")),
                     project_id=payload.get("project_id"),
                     session_id=payload.get("session_id"),
-                    created_at=datetime.fromisoformat(payload["created_at"]),
+                    created_at=datetime.fromisoformat(
+                        payload.get("created_at", datetime.utcnow().isoformat()),
+                    ),
                     metadata=payload.get("metadata", {}),
                 )
             )
@@ -139,10 +161,12 @@ class QdrantMemoryStore:
         Args:
             entry_id: ID of the memory entry to delete
         """
-        self.client.delete(
-            collection_name=self.collection_name,
-            points_selector=[entry_id],
+        body = {"points": [entry_id]}
+        resp = self._http.post(
+            f"/collections/{self.collection_name}/points/delete",
+            json=body,
         )
+        resp.raise_for_status()
 
     async def list_memories(
         self,
@@ -162,34 +186,47 @@ class QdrantMemoryStore:
         Returns:
             List of memory entries
         """
-        query_filter = {}
-
+        conditions = {}
         if scope:
-            query_filter["scope"] = scope.value
+            conditions["scope"] = scope.value
         if project_id:
-            query_filter["project_id"] = project_id
+            conditions["project_id"] = project_id
         if session_id:
-            query_filter["session_id"] = session_id
+            conditions["session_id"] = session_id
 
-        results = self.client.scroll(
-            collection_name=self.collection_name,
-            scroll_filter=query_filter if query_filter else None,
-            limit=limit,
+        body = {
+            "limit": limit,
+            "with_payload": True,
+            "with_vector": False,
+            "filter": self._qdrant_point_filter(conditions),
+        }
+
+        resp = self._http.post(
+            f"/collections/{self.collection_name}/points/scroll",
+            json=body,
         )
+        resp.raise_for_status()
+        points = resp.json().get("result", {}).get("points", [])
 
         memories = []
-        for point in results[0]:
-            payload = point.payload
+        for point in points:
+            payload = point.get("payload", {})
             memories.append(
                 MemoryEntry(
-                    id=str(point.id),
-                    content=payload["content"],
-                    scope=MemoryScope(payload["scope"]),
+                    id=str(point["id"]),
+                    content=payload.get("content", ""),
+                    scope=MemoryScope(payload.get("scope", "global")),
                     project_id=payload.get("project_id"),
                     session_id=payload.get("session_id"),
-                    created_at=datetime.fromisoformat(payload["created_at"]),
+                    created_at=datetime.fromisoformat(
+                        payload.get("created_at", datetime.utcnow().isoformat()),
+                    ),
                     metadata=payload.get("metadata", {}),
                 )
             )
 
         return memories
+
+    async def close(self) -> None:
+        """Close HTTP client."""
+        self._http.close()

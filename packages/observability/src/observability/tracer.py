@@ -1,7 +1,7 @@
 """Distributed tracing with OpenTelemetry."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from observability.models import Span, SpanStatus, Trace
 
@@ -31,7 +31,7 @@ class Tracer:
         """
         trace_id = str(uuid.uuid4())
         span_id = str(uuid.uuid4())
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
 
         root_span = Span(
             trace_id=trace_id,
@@ -82,7 +82,7 @@ class Tracer:
             raise ValueError(f"Trace {trace_id} not found")
 
         span_id = str(uuid.uuid4())
-        start_time = datetime.utcnow()
+        start_time = datetime.now(UTC)
 
         span = Span(
             trace_id=trace_id,
@@ -119,7 +119,7 @@ class Tracer:
             raise ValueError(f"Span {span_id} not found or already ended")
 
         span = self._active_spans.pop(span_id)
-        end_time = datetime.utcnow()
+        end_time = datetime.now(UTC)
         duration_ms = (end_time - span.start_time).total_seconds() * 1000
 
         span.end_time = end_time
@@ -153,7 +153,7 @@ class Tracer:
                     if span.span_id == span_id:
                         span.events.append({
                             "name": name,
-                            "timestamp": datetime.utcnow().isoformat(),
+                            "timestamp": datetime.now(UTC).isoformat(),
                             "attributes": attributes or {},
                         })
                         return
@@ -162,7 +162,7 @@ class Tracer:
         span = self._active_spans[span_id]
         span.events.append({
             "name": name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "attributes": attributes or {},
         })
 

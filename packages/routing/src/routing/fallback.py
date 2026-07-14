@@ -6,9 +6,9 @@ from contracts import (
     CompletionRequest,
     CompletionResponse,
     Outcome,
+    Router,
     RoutingError,
 )
-from routing.base import Router
 from routing.registry import ProviderRegistry
 
 

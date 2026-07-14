@@ -4,17 +4,17 @@ import time
 from collections import defaultdict
 
 from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import PlainTextResponse
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import PlainTextResponse, Response
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, requests_per_minute: int = 60):
+    def __init__(self, app, requests_per_minute: int = 60):  # type: ignore[override]
         super().__init__(app)
         self.rpm = requests_per_minute
         self._requests: dict[str, list[float]] = defaultdict(list)
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         client_ip = request.client.host if request.client else "unknown"
         now = time.time()
         self._requests[client_ip] = [

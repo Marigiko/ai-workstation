@@ -1,8 +1,15 @@
 """Tests against a live running gateway (requires docker-compose up)."""
 
+import os
+
 import httpx
+import pytest
 
 GATEWAY_URL = "http://localhost:8000"
+
+_HAS_CHAT_KEYS = bool(
+    os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY") or os.getenv("GEMINI_API_KEY")
+)
 
 
 def test_health_endpoint():
@@ -17,6 +24,7 @@ def test_openai_models_endpoint():
     assert "data" in resp.json()
 
 
+@pytest.mark.skipif(not _HAS_CHAT_KEYS, reason="No API keys configured in environment")
 def test_chat_endpoint_reachable():
     resp = httpx.post(
         f"{GATEWAY_URL}/chat",
@@ -26,6 +34,7 @@ def test_chat_endpoint_reachable():
     assert resp.status_code != 500
 
 
+@pytest.mark.skipif(not _HAS_CHAT_KEYS, reason="No API keys configured in environment")
 def test_openai_chat_completions_reachable():
     resp = httpx.post(
         f"{GATEWAY_URL}/v1/chat/completions",

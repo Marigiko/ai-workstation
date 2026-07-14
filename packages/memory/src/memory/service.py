@@ -1,7 +1,7 @@
 """Memory service for high-level memory operations."""
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from contracts import MemoryEntry, MemoryScope
 from memory.qdrant_store import QdrantMemoryStore
@@ -53,7 +53,7 @@ class MemoryService:
             scope=scope,
             project_id=project_id,
             session_id=session_id,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
             metadata=metadata or {},
         )
 

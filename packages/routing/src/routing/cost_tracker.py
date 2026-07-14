@@ -1,7 +1,7 @@
 """Cost tracking for routing decisions."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -29,7 +29,7 @@ class CostTracker:
                 model=model,
                 cost_usd=cost_usd,
                 tokens_used=tokens_used,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
             )
         )
 

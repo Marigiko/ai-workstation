@@ -91,6 +91,9 @@ async def _stream_response(
     project_id: str | None,
 ):
     """Generate streaming response with full pipeline metadata."""
+    assistant_content = ""
+    response_model = ""
+    response_provider = ""
     try:
         stream = pipeline.execute_stream(
             request, project_id=project_id, session_id=session_id
@@ -100,17 +103,34 @@ async def _stream_response(
             data = event["data"]
 
             if event_type == "routing":
+                response_provider = data.get("provider", "")
                 yield f"data: {json.dumps({'type': 'routing', **data})}\n\n"
             elif event_type == "context":
                 yield f"data: {json.dumps({'type': 'context', **data})}\n\n"
             elif event_type == "chunk":
+                assistant_content += data.get("delta", "")
+                response_model = data.get("model", response_model)
                 yield f"data: {json.dumps(data)}\n\n"
             elif event_type == "eval":
                 yield f"data: {json.dumps({'type': 'eval', **data})}\n\n"
             elif event_type == "done":
-                if session_id:
-                    pass
                 yield "data: [DONE]\n\n"
+
+        if session_id and assistant_content:
+            for msg in request.messages:
+                if msg.role.value in ["user", "system"]:
+                    await conv_service.add_turn(
+                        session_id=session_id,
+                        role=msg.role.value,
+                        content=msg.content,
+                    )
+            await conv_service.add_turn(
+                session_id=session_id,
+                role="assistant",
+                content=assistant_content,
+                model=response_model,
+                provider=response_provider,
+            )
 
     except Exception as e:
         error_data = {"error": str(e)}

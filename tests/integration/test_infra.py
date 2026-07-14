@@ -2,17 +2,16 @@
 
 import subprocess
 
+import asyncpg
 import httpx
-import psycopg2
 import redis
 
 
-def test_postgres_reachable():
-    conn = psycopg2.connect(
+async def test_postgres_reachable():
+    conn = await asyncpg.connect(
         "postgresql://ai_workstation:ai_workstation_dev@localhost:5432/ai_workstation"
     )
-    assert conn.poll() == psycopg2.extensions.POLL_OK
-    conn.close()
+    await conn.close()
 
 
 def test_redis_reachable():
@@ -21,7 +20,7 @@ def test_redis_reachable():
 
 
 def test_qdrant_reachable():
-    resp = httpx.get("http://localhost:6333/health", timeout=5)
+    resp = httpx.get("http://localhost:6333/", timeout=5)
     assert resp.status_code == 200
 
 

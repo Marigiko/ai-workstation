@@ -1,6 +1,6 @@
 """Conversation service for managing sessions and turns."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,7 +79,7 @@ class ConversationService:
 
         session_model = await self.get_session(session_id)
         if session_model:
-            session_model.updated_at = datetime.utcnow()
+            session_model.updated_at = datetime.now(UTC)
 
         await self.session.commit()
         await self.session.refresh(turn)

@@ -2,9 +2,9 @@
 
 __version__ = "0.1.0"
 
+from contracts import Router
 from routing.agent_registry import AgentRegistry
 from routing.agent_router import AgentRouter, classify_task
-from routing.base import Router
 from routing.capability_router import CapabilityRouter
 from routing.cost_router import CostOptimizedRouter
 from routing.cost_tracker import CostTracker
