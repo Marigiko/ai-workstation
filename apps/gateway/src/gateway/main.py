@@ -6,8 +6,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env from project root before importing anything that reads env vars
-load_dotenv(Path(__file__).resolve().parents[4] / ".env")
+# Load .env from project root (4 levels up from gateway/main.py)
+load_dotenv(Path(__file__).resolve().parents[4] / ".env", override=True)
 
 from conversation import close_db, init_db
 from fastapi import FastAPI
