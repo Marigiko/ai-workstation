@@ -5,6 +5,9 @@ from memory import MemoryService, QdrantMemoryStore
 
 from contracts import MemoryScope
 
+# Memory endpoints accept query params (not JSON body) so external clients
+# like Terax-AI can call them with simple GET/POST requests.
+
 router = APIRouter(prefix="/memory", tags=["memory"])
 
 # Lazy initialization
@@ -23,8 +26,8 @@ def _get_memory_service() -> MemoryService:
 
 @router.post("/remember")
 async def remember(
-    content: str,
-    scope: MemoryScope,
+    content: str = Query(..., description="Memory content"),
+    scope: MemoryScope = Query(..., description="Memory scope"),
     project_id: str | None = None,
     session_id: str | None = None,
 ):
@@ -62,8 +65,8 @@ async def remember(
 
 @router.post("/recall")
 async def recall(
-    query: str,
-    scope: MemoryScope,
+    query: str = Query(..., description="Query text to search for"),
+    scope: MemoryScope = Query(..., description="Memory scope to search within"),
     limit: int = Query(default=10, ge=1, le=100),
     project_id: str | None = None,
     session_id: str | None = None,
