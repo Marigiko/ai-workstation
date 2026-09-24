@@ -3,7 +3,6 @@
 import os
 
 import httpx
-import pytest
 
 _HAS_CHAT_KEYS = bool(
     os.getenv("OPENAI_API_KEY") or os.getenv("ANTHROPIC_API_KEY") or os.getenv("GEMINI_API_KEY")

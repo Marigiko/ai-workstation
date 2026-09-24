@@ -72,6 +72,7 @@ class PipelineService:
         tool_registry: ToolRegistry | None = None,
         evaluation_service: EvaluationService | None = None,
         observability_service: ObservabilityService | None = None,
+        auto_recall: bool = True,
     ):
         self.provider_registry = provider_registry
         self.agent_router = agent_router
@@ -80,6 +81,7 @@ class PipelineService:
         self.tool_registry = tool_registry
         self.evaluation_service = evaluation_service
         self.observability_service = observability_service
+        self.auto_recall = auto_recall
 
     async def _gather_context(
         self, query: str, project_id: str | None = None, max_tokens: int = 4096
@@ -219,7 +221,17 @@ class PipelineService:
         request: CompletionRequest,
         project_id: str | None = None,
         session_id: str | None = None,
+        auto_recall: bool | None = None,
     ) -> PipelineResult:
+        """Execute the pipeline.
+
+        Args:
+            request: Completion request
+            project_id: Optional project ID
+            session_id: Optional session ID
+            auto_recall: Override instance auto_recall setting for this request.
+                If None, uses self.auto_recall (default True).
+        """
         start_time = time.time()
         trace_id = None
 
@@ -229,8 +241,14 @@ class PipelineService:
         try:
             query = " ".join(m.content for m in request.messages[-3:])
 
-            context_chunks = await self._gather_context(query, project_id)
-            memories = await self._recall_memories(query, project_id, session_id)
+            # Auto-recall: gather context and memories unless disabled
+            should_recall = auto_recall if auto_recall is not None else self.auto_recall
+            if should_recall:
+                context_chunks = await self._gather_context(query, project_id)
+                memories = await self._recall_memories(query, project_id, session_id)
+            else:
+                context_chunks = []
+                memories = []
 
             augmented_messages = self._augment_messages(
                 request.messages, context_chunks, memories
@@ -260,7 +278,7 @@ class PipelineService:
             )
 
             if self.observability_service and trace_id:
-                self.observability_service.end_request(
+                await self.observability_service.end_request(
                     trace_id=trace_id, status=SpanStatus.OK
                 )
 
@@ -291,7 +309,7 @@ class PipelineService:
         except Exception as e:
             logger.error("Pipeline execution failed: %s", e, exc_info=True)
             if self.observability_service and trace_id:
-                self.observability_service.end_request(
+                await self.observability_service.end_request(
                     trace_id=trace_id,
                     status=SpanStatus.ERROR,
                     attributes={"error": str(e)},
@@ -306,8 +324,13 @@ class PipelineService:
     ):
         query = " ".join(m.content for m in request.messages[-3:])
 
-        context_chunks = await self._gather_context(query, project_id)
-        memories = await self._recall_memories(query, project_id, session_id)
+        # Auto-recall: gather context and memories unless disabled
+        if self.auto_recall:
+            context_chunks = await self._gather_context(query, project_id)
+            memories = await self._recall_memories(query, project_id, session_id)
+        else:
+            context_chunks = []
+            memories = []
 
         augmented_messages = self._augment_messages(
             request.messages, context_chunks, memories

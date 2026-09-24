@@ -18,6 +18,7 @@ members = [
     "conversation",
     "evaluation",
     "gateway",
+    "integration",
     "mcp",
     "memory",
     "observability",
@@ -558,6 +559,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "contracts" },
     { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "tiktoken" },
 ]
 
 [package.metadata]
@@ -565,6 +567,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.29.0" },
     { name = "contracts", editable = "packages/contracts" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.30" },
+    { name = "tiktoken", specifier = ">=0.7.0" },
 ]
 
 [[package]]
@@ -1235,6 +1238,29 @@ wheels = [
 ]
 
 [[package]]
+name = "integration"
+version = "0.1.0"
+source = { editable = "packages/integration" }
+dependencies = [
+    { name = "contracts" },
+    { name = "conversation" },
+    { name = "mcp" },
+    { name = "memory" },
+    { name = "routing" },
+    { name = "skills" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "contracts", editable = "packages/contracts" },
+    { name = "conversation", editable = "packages/conversation" },
+    { name = "mcp", editable = "packages/mcp" },
+    { name = "memory", editable = "packages/memory" },
+    { name = "routing", editable = "packages/routing" },
+    { name = "skills", editable = "packages/skills" },
+]
+
+[[package]]
 name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1585,12 +1611,14 @@ version = "0.1.0"
 source = { editable = "packages/memory" }
 dependencies = [
     { name = "contracts" },
+    { name = "litellm" },
     { name = "qdrant-client" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "contracts", editable = "packages/contracts" },
+    { name = "litellm", specifier = ">=1.40.0" },
     { name = "qdrant-client", specifier = ">=1.7.0" },
 ]
 
@@ -1916,10 +1944,14 @@ version = "0.1.0"
 source = { editable = "packages/observability" }
 dependencies = [
     { name = "contracts" },
+    { name = "conversation" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "contracts", editable = "packages/contracts" }]
+requires-dist = [
+    { name = "contracts", editable = "packages/contracts" },
+    { name = "conversation", editable = "packages/conversation" },
+]
 
 [[package]]
 name = "openai"

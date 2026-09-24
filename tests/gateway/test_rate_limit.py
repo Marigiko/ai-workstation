@@ -1,6 +1,5 @@
 """Tests for rate limiting middleware."""
 
-import pytest
 from fastapi import FastAPI, Request
 from fastapi.responses import PlainTextResponse
 

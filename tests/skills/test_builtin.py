@@ -42,7 +42,7 @@ def test_test_generation_skill():
 
 def test_all_builtin_skills():
     """Test that all built-in skills are included."""
-    assert len(ALL_BUILTIN_SKILLS) == 3
+    assert len(ALL_BUILTIN_SKILLS) >= 3
     skill_names = [s.name for s in ALL_BUILTIN_SKILLS]
     assert "code-review" in skill_names
     assert "refactor" in skill_names

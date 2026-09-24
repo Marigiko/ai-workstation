@@ -26,7 +26,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             latency_ms = (time.time() - start_time) * 1000
 
-            self.observability.end_request(trace_id=trace_id, status=SpanStatus.OK)
+            await self.observability.end_request(trace_id=trace_id, status=SpanStatus.OK)
 
             response.headers["X-Trace-Id"] = trace_id
             response.headers["X-Latency-Ms"] = str(int(latency_ms))
@@ -34,7 +34,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             return response
 
         except Exception as e:
-            self.observability.end_request(
+            await self.observability.end_request(
                 trace_id=trace_id, status=SpanStatus.ERROR, attributes={"error": str(e)}
             )
             raise

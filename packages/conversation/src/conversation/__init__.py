@@ -4,6 +4,8 @@ __version__ = "0.1.0"
 
 from conversation.database import (
     _get_factory as async_session_factory,
+)
+from conversation.database import (
     close_db,
     get_session,
     init_db,

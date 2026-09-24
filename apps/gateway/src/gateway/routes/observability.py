@@ -66,7 +66,7 @@ async def end_request(trace_id: str, request: EndRequest):
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid status: {request.status}")
 
-    service.end_request(trace_id, status, request.attributes)
+    await service.end_request(trace_id, status, request.attributes)
     return {"status": "success", "trace_id": trace_id}
 
 
@@ -211,6 +211,26 @@ async def list_logs(limit: int = 1000, level: str | None = None):
             for log in logs
         ],
         "count": len(logs),
+    }
+
+
+@router.get("/traces/persisted")
+async def list_persisted_traces(
+    limit: int = 100,
+    status: str | None = None,
+    service_name: str | None = None,
+):
+    """List traces from PostgreSQL (persistent storage)."""
+    service = _get_observability_service()
+    traces = await service.tracer.list_persisted_traces(
+        limit=limit,
+        status=status,
+        service_name=service_name,
+    )
+    return {
+        "traces": traces,
+        "count": len(traces),
+        "source": "postgresql",
     }
 
 

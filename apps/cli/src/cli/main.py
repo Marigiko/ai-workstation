@@ -331,6 +331,74 @@ def eval_run(
         handle_error(e)
 
 
+# MCP server command
+mcp_app = typer.Typer(help="MCP server for external AI clients")
+app.add_typer(mcp_app, name="mcp")
+
+
+@mcp_app.command("serve")
+def mcp_serve():
+    """Start MCP server for Claude Code / Kimi integration.
+
+    Exposes AI Workstation tools via Model Context Protocol over stdio.
+    Injects all services: memory, skills, routing, conversation, context.
+    """
+    import asyncio
+
+    try:
+        from conversation import ConversationService, async_session_factory
+        from integration import IntegrationMCPServer
+        from memory import MemoryService, QdrantMemoryStore
+        from routing import ProviderRegistry
+        from skills import SkillRegistry
+        from skills.builtin import ALL_BUILTIN_SKILLS
+
+        console.print("[green]Starting AI Workstation MCP server...[/green]")
+
+        # Initialize services
+        memory_store = QdrantMemoryStore()
+        memory_service = MemoryService(memory_store)
+
+        skill_registry = SkillRegistry()
+        for skill in ALL_BUILTIN_SKILLS:
+            skill_registry.register(skill)
+
+        provider_registry = ProviderRegistry()
+
+        # Conversation service factory (creates service from session)
+        def conversation_factory():
+            session = async_session_factory()
+            return ConversationService(session)
+
+        # Context sources (if configured)
+        context_sources = []
+        try:
+            from context.sources import FileContextSource, TreeSitterSource
+            context_sources.append(TreeSitterSource())
+            context_sources.append(FileContextSource())
+        except Exception:
+            console.print("[dim]Context sources not configured, skipping[/dim]")
+
+        server = IntegrationMCPServer(
+            memory_service=memory_service,
+            skill_registry=skill_registry,
+            provider_registry=provider_registry,
+            conversation_service_factory=conversation_factory,
+            context_sources=context_sources if context_sources else None,
+            allow_global_memory=False,  # MCP agents can't write global memory
+        )
+
+        tools_count = len(server.tool_registry.list_tools())
+        console.print(
+            f"[dim]MCP server ready with {tools_count} tools. Waiting...[/dim]"
+        )
+        asyncio.run(server.run_stdio())
+    except KeyboardInterrupt:
+        console.print("\n[yellow]MCP server stopped.[/yellow]")
+    except Exception as e:
+        handle_error(e)
+
+
 # Observability commands
 @app.command()
 def metrics():

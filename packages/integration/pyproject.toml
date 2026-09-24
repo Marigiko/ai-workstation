@@ -1,0 +1,28 @@
+[project]
+name = "integration"
+version = "0.1.0"
+description = "AI Workstation integration package - MCP server for external clients"
+requires-python = ">=3.11"
+dependencies = [
+    "contracts",
+    "memory",
+    "skills",
+    "conversation",
+    "routing",
+    "mcp",
+]
+
+[tool.uv.sources]
+contracts = { workspace = true }
+memory = { workspace = true }
+skills = { workspace = true }
+conversation = { workspace = true }
+routing = { workspace = true }
+mcp = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/integration"]

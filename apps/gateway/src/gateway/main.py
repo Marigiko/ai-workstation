@@ -9,12 +9,15 @@ from dotenv import load_dotenv
 # Load .env from project root (4 levels up from gateway/main.py)
 load_dotenv(Path(__file__).resolve().parents[4] / ".env", override=True)
 
-from conversation import close_db, init_db
+from conversation import async_session_factory, close_db, init_db
 from fastapi import FastAPI
 from observability import ObservabilityService
 from pipeline import PipelineService
 from providers import LiteLLMProvider
-from routing import AgentRouter, ProviderRegistry
+from routing import ProviderRegistry
+from routing.unified_router import UnifiedRouter
+from skills import SkillRegistry
+from skills.builtin import register_builtin_skills
 
 from gateway.middleware import APIKeyMiddleware, ObservabilityMiddleware
 from gateway.middleware.rate_limit import RateLimitMiddleware
@@ -49,12 +52,26 @@ def _create_pipeline() -> PipelineService:
     if openai_key:
         registry.register(LiteLLMProvider(model="gpt-4o", api_key=openai_key))
 
-    agent_router = AgentRouter(registry)
-    observability_service = ObservabilityService()
+    # Unified router: capability filter + cost + latency scoring
+    unified_router = UnifiedRouter(
+        registry,
+        cost_weight=0.3,
+        latency_weight=0.4,
+        tier_weight=0.3,
+    )
+    # Set provider tiers (0=free, 1=budget, 2=standard, 3=premium)
+    if gemini_key:
+        unified_router.set_provider_tier("gemini/gemini-2.5-flash", tier=0)  # free tier
+    if claude_key:
+        unified_router.set_provider_tier("claude-sonnet-4-20250514", tier=3)  # premium
+    if openai_key:
+        unified_router.set_provider_tier("gpt-4o", tier=2)  # standard
+
+    observability_service = ObservabilityService(session_factory=async_session_factory)
 
     return PipelineService(
         provider_registry=registry,
-        agent_router=agent_router,
+        agent_router=unified_router,
         observability_service=observability_service,
     )
 
@@ -64,6 +81,11 @@ async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     await init_db()
     app.state.pipeline = _create_pipeline()
+
+    # Register built-in skills
+    app.state.skill_registry = SkillRegistry()
+    register_builtin_skills(app.state.skill_registry)
+
     yield
     await close_db()
 
@@ -79,7 +101,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    observability_service = ObservabilityService()
+    observability_service = ObservabilityService(session_factory=async_session_factory)
     app.add_middleware(ObservabilityMiddleware, observability_service=observability_service)
 
     api_keys = os.getenv("API_KEYS", "").split(",") if os.getenv("API_KEYS") else []

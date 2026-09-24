@@ -31,12 +31,13 @@ def test_start_span(tracer):
     assert len(trace.spans) == 2
 
 
-def test_end_span(tracer):
+@pytest.mark.asyncio
+async def test_end_span(tracer):
     """Test ending a span."""
     trace_id = tracer.start_trace("test-operation")
     span_id = tracer.start_span(trace_id, "child-operation")
 
-    tracer.end_span(span_id, SpanStatus.OK, {"result": "success"})
+    await tracer.end_span(span_id, SpanStatus.OK, {"result": "success"})
 
     trace = tracer.get_trace(trace_id)
     span = next(s for s in trace.spans if s.span_id == span_id)
@@ -45,12 +46,13 @@ def test_end_span(tracer):
     assert span.duration_ms >= 0
 
 
-def test_end_span_with_error(tracer):
+@pytest.mark.asyncio
+async def test_end_span_with_error(tracer):
     """Test ending a span with error status."""
     trace_id = tracer.start_trace("test-operation")
     span_id = tracer.start_span(trace_id, "failing-operation")
 
-    tracer.end_span(span_id, SpanStatus.ERROR, {"error": "something went wrong"})
+    await tracer.end_span(span_id, SpanStatus.ERROR, {"error": "something went wrong"})
 
     trace = tracer.get_trace(trace_id)
     assert trace.status == SpanStatus.ERROR
@@ -104,7 +106,8 @@ def test_start_span_invalid_trace(tracer):
         tracer.start_span("invalid-trace-id", "operation")
 
 
-def test_end_span_invalid_span(tracer):
+@pytest.mark.asyncio
+async def test_end_span_invalid_span(tracer):
     """Test ending an invalid span."""
     with pytest.raises(ValueError, match="Span .* not found"):
-        tracer.end_span("invalid-span-id")
+        await tracer.end_span("invalid-span-id")

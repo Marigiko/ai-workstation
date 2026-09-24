@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "contracts",
     "qdrant-client>=1.7.0",
+    "litellm>=1.40.0",
 ]
 
 [tool.uv.sources]

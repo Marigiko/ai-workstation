@@ -33,6 +33,7 @@ from contracts.exceptions import (
 )
 from contracts.interfaces import (
     ContextSource,
+    EmbeddingProvider,
     Evaluator,
     MemoryStore,
     Provider,
@@ -70,6 +71,7 @@ __all__ = [
     "ToolError",
     # Interfaces
     "ContextSource",
+    "EmbeddingProvider",
     "Evaluator",
     "MemoryStore",
     "Provider",

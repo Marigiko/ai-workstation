@@ -1,11 +1,15 @@
 """Qdrant-based memory store implementation."""
 
+import logging
 import os
 from datetime import datetime
 
 import httpx
 
-from contracts import MemoryEntry, MemoryScope
+from contracts import EmbeddingProvider, MemoryEntry, MemoryScope
+from memory.embedding import create_embedding_provider
+
+logger = logging.getLogger(__name__)
 
 
 class QdrantMemoryStore:
@@ -16,16 +20,24 @@ class QdrantMemoryStore:
         collection_name: str = "memory",
         qdrant_url: str | None = None,
         embedding_dim: int = 768,
+        embedding_provider: EmbeddingProvider | None = None,
     ):
         """Initialize Qdrant memory store.
 
         Args:
             collection_name: Name of the Qdrant collection
             qdrant_url: URL of Qdrant server (defaults to QDRANT_URL env or http://localhost:6333)
-            embedding_dim: Dimension of embedding vectors
+            embedding_dim: Vector dimension used only when no embedding provider is available
+            embedding_provider: Provider for generating embeddings.
+                If None, auto-detects best available.
         """
         self.collection_name = collection_name
-        self.embedding_dim = embedding_dim
+        self._embedding_provider = embedding_provider or create_embedding_provider()
+        self.embedding_dim = (
+            self._embedding_provider.dimension
+            if self._embedding_provider is not None
+            else embedding_dim
+        )
         url = qdrant_url or os.getenv("QDRANT_URL", "http://localhost:6333")
         self.server_url = url.rstrip("/")
         self._http = httpx.Client(base_url=self.server_url, timeout=30.0)
@@ -55,13 +67,20 @@ class QdrantMemoryStore:
             resp = self._http.put(f"/collections/{self.collection_name}", json=body)
             resp.raise_for_status()
 
-    def _generate_embedding(self, text: str) -> list[float]:
+    async def _generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for text.
 
-        Note: This is a placeholder. In production, use a proper embedding model.
+        Uses the configured EmbeddingProvider if available.
+        Falls back to MD5-based placeholder if no provider is configured.
         """
-        import hashlib
+        if self._embedding_provider is not None:
+            try:
+                return await self._embedding_provider.embed(text)
+            except Exception as e:
+                logger.warning("Embedding provider failed, using fallback: %s", e)
 
+        # Fallback: deterministic but not semantically meaningful
+        import hashlib
         hash_value = hashlib.md5(text.encode()).hexdigest()
         return [float(int(hash_value[i : i + 2], 16)) / 255.0 for i in range(0, 32, 2)] * 48
 
@@ -71,7 +90,7 @@ class QdrantMemoryStore:
         Args:
             entry: Memory entry to store
         """
-        embedding = self._generate_embedding(entry.content)
+        embedding = await self._generate_embedding(entry.content)
 
         point = {
             "id": entry.id,
@@ -113,7 +132,7 @@ class QdrantMemoryStore:
         Returns:
             List of matching memory entries
         """
-        query_embedding = self._generate_embedding(query)
+        query_embedding = await self._generate_embedding(query)
 
         conditions = {"scope": scope.value}
         if scope == MemoryScope.PROJECT and project_id:

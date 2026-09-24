@@ -109,6 +109,30 @@ class MemoryStore(Protocol):
 
 
 @runtime_checkable
+class EmbeddingProvider(Protocol):
+    """Embedding provider abstraction.
+
+    Generates vector representations of text for semantic search.
+    """
+
+    async def embed(self, text: str) -> list[float]:
+        """Generate embedding vector for text.
+
+        Args:
+            text: Input text to embed
+
+        Returns:
+            Embedding vector as list of floats
+        """
+        ...
+
+    @property
+    def dimension(self) -> int:
+        """Return the dimension of embedding vectors."""
+        ...
+
+
+@runtime_checkable
 class Evaluator(Protocol):
     """Evaluator abstraction."""
 

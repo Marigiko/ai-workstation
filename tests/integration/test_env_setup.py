@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-ENV_PATH = Path("/mnt/d/Projects/ai-workstation/.env")
+ENV_PATH = Path("/mnt/e/Projects/ai-workstation/.env")
 
 
 def test_env_file_exists():

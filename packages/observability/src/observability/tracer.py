@@ -1,23 +1,36 @@
 """Distributed tracing with OpenTelemetry."""
 
+import logging
 import uuid
 from datetime import UTC, datetime
 
 from observability.models import Span, SpanStatus, Trace
 
+logger = logging.getLogger(__name__)
+
 
 class Tracer:
-    """Distributed tracer using OpenTelemetry-compatible format."""
+    """Distributed tracer using OpenTelemetry-compatible format.
 
-    def __init__(self, service_name: str = "ai-workstation"):
+    Supports optional persistence to PostgreSQL for historical analysis.
+    """
+
+    def __init__(
+        self,
+        service_name: str = "ai-workstation",
+        session_factory=None,
+    ):
         """Initialize tracer.
 
         Args:
             service_name: Name of the service
+            session_factory: Optional async session factory for persisting traces.
+                If provided, completed traces are saved to PostgreSQL.
         """
         self.service_name = service_name
         self._traces: dict[str, Trace] = {}
         self._active_spans: dict[str, Span] = {}
+        self._session_factory = session_factory
 
     def start_trace(self, name: str, attributes: dict | None = None) -> str:
         """Start a new trace.
@@ -102,7 +115,7 @@ class Tracer:
 
         return span_id
 
-    def end_span(
+    async def end_span(
         self,
         span_id: str,
         status: SpanStatus = SpanStatus.OK,
@@ -137,6 +150,10 @@ class Tracer:
         # Update trace status if any span has error
         if status == SpanStatus.ERROR:
             trace.status = SpanStatus.ERROR
+
+        # Persist trace when root span ends
+        if span.parent_span_id is None and self._session_factory:
+            await self._persist_trace(trace)
 
     def add_span_event(self, span_id: str, name: str, attributes: dict | None = None):
         """Add an event to a span.
@@ -194,3 +211,56 @@ class Tracer:
         """Clear all traces."""
         self._traces.clear()
         self._active_spans.clear()
+
+    async def list_persisted_traces(
+        self,
+        limit: int = 100,
+        status: str | None = None,
+        service_name: str | None = None,
+    ) -> list[dict]:
+        """List traces from PostgreSQL.
+
+        Args:
+            limit: Maximum number of traces
+            status: Filter by status (ok/error)
+            service_name: Filter by service name
+
+        Returns:
+            List of trace dictionaries
+        """
+        if not self._session_factory:
+            return []
+
+        try:
+            from sqlalchemy import select
+
+            from observability.trace_model import TraceModel
+
+            async with self._session_factory() as session:
+                stmt = select(TraceModel).order_by(TraceModel.start_time.desc()).limit(limit)
+                if status:
+                    stmt = stmt.where(TraceModel.status == status)
+                if service_name:
+                    stmt = stmt.where(TraceModel.service_name == service_name)
+
+                result = await session.execute(stmt)
+                traces = result.scalars().all()
+                return [t.to_dict() for t in traces]
+        except Exception as e:
+            logger.warning("Failed to query traces: %s", e)
+            return []
+
+    async def _persist_trace(self, trace: Trace) -> None:
+        """Persist completed trace to PostgreSQL."""
+        if not self._session_factory:
+            return
+
+        try:
+            from observability.trace_model import TraceModel
+
+            async with self._session_factory() as session:
+                trace_model = TraceModel.from_trace(trace)
+                session.add(trace_model)
+                await session.commit()
+        except Exception as e:
+            logger.warning("Failed to persist trace %s: %s", trace.trace_id, e)

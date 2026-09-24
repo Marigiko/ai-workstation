@@ -10,14 +10,19 @@ from observability.tracer import Tracer
 class ObservabilityService:
     """Unified observability service."""
 
-    def __init__(self, service_name: str = "ai-workstation"):
+    def __init__(
+        self,
+        service_name: str = "ai-workstation",
+        session_factory=None,
+    ):
         """Initialize observability service.
 
         Args:
             service_name: Name of the service
+            session_factory: Optional async session factory for persisting traces.
         """
         self.service_name = service_name
-        self.tracer = Tracer(service_name)
+        self.tracer = Tracer(service_name, session_factory=session_factory)
         self.metrics = MetricsCollector(service_name)
         self.logger = StructuredLogger(service_name)
 
@@ -39,7 +44,7 @@ class ObservabilityService:
 
         return trace_id
 
-    def end_request(
+    async def end_request(
         self,
         trace_id: str,
         status: SpanStatus = SpanStatus.OK,
@@ -54,7 +59,7 @@ class ObservabilityService:
         """
         trace = self.tracer.get_trace(trace_id)
         if trace:
-            self.tracer.end_span(trace.root_span.span_id, status, attributes)
+            await self.tracer.end_span(trace.root_span.span_id, status, attributes)
 
             # Record latency
             self.metrics.histogram(

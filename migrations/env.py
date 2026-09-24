@@ -1,20 +1,16 @@
 from logging.config import fileConfig
 from pathlib import Path
 
+from alembic import context
 from dotenv import load_dotenv
-from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # Load .env from project root so DATABASE_URL is available
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 # Importar los modelos para que Alembic los detecte
 from conversation.models.base import Base
-from conversation.models.session import SessionModel
-from conversation.models.turn import TurnModel
 
 # this is the Alembic Config object
 config = context.config
@@ -54,7 +50,7 @@ async def run_async_migrations() -> None:
     """Run migrations in 'online' mode with async engine."""
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = config.get_main_option("sqlalchemy.url")
-    
+
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",

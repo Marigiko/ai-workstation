@@ -20,19 +20,21 @@ def test_start_request(service):
     assert trace.root_span.name == "test-operation"
 
 
-def test_end_request(service):
+@pytest.mark.asyncio
+async def test_end_request(service):
     """Test ending a request."""
     trace_id = service.start_request("test-operation")
-    service.end_request(trace_id, SpanStatus.OK, {"result": "success"})
+    await service.end_request(trace_id, SpanStatus.OK, {"result": "success"})
 
     trace = service.tracer.get_trace(trace_id)
     assert trace.status == SpanStatus.OK
 
 
-def test_end_request_with_error(service):
+@pytest.mark.asyncio
+async def test_end_request_with_error(service):
     """Test ending a request with error."""
     trace_id = service.start_request("test-operation")
-    service.end_request(trace_id, SpanStatus.ERROR)
+    await service.end_request(trace_id, SpanStatus.ERROR)
 
     trace = service.tracer.get_trace(trace_id)
     assert trace.status == SpanStatus.ERROR
@@ -54,14 +56,15 @@ def test_log_event(service):
     assert logs[0].message == "Test message"
 
 
-def test_get_summary(service):
+@pytest.mark.asyncio
+async def test_get_summary(service):
     """Test getting observability summary."""
     # Create some traces
     trace_id1 = service.start_request("operation-1")
-    service.end_request(trace_id1, SpanStatus.OK)
+    await service.end_request(trace_id1, SpanStatus.OK)
 
     trace_id2 = service.start_request("operation-2")
-    service.end_request(trace_id2, SpanStatus.ERROR)
+    await service.end_request(trace_id2, SpanStatus.ERROR)
 
     # Record some metrics
     service.record_metric("temperature", 25.0)
@@ -104,13 +107,14 @@ def test_clear_all(service):
     assert summary.total_logs == 0
 
 
-def test_request_latency_tracking(service):
+@pytest.mark.asyncio
+async def test_request_latency_tracking(service):
     """Test that request latency is tracked."""
     import time
 
     trace_id = service.start_request("slow-operation")
     time.sleep(0.01)  # Sleep for 10ms
-    service.end_request(trace_id)
+    await service.end_request(trace_id)
 
     # Check with both operation and status labels
     stats = service.metrics.get_histogram_stats(
@@ -121,13 +125,14 @@ def test_request_latency_tracking(service):
     assert stats["sum"] >= 10.0  # At least 10ms
 
 
-def test_error_counter(service):
+@pytest.mark.asyncio
+async def test_error_counter(service):
     """Test that errors are counted."""
     trace_id1 = service.start_request("operation-1")
-    service.end_request(trace_id1, SpanStatus.OK)
+    await service.end_request(trace_id1, SpanStatus.OK)
 
     trace_id2 = service.start_request("operation-2")
-    service.end_request(trace_id2, SpanStatus.ERROR)
+    await service.end_request(trace_id2, SpanStatus.ERROR)
 
     error_count = service.metrics.get_counter("requests_errors_total", {"operation": "operation-2"})
     assert error_count == 1.0

@@ -1,5 +1,6 @@
 """Conversation service for managing sessions and turns."""
 
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -9,6 +10,8 @@ from sqlalchemy.orm import selectinload
 from contracts import Message, Role
 from conversation.models.session import SessionModel
 from conversation.models.turn import TurnModel
+
+logger = logging.getLogger(__name__)
 
 
 class ConversationService:
@@ -85,17 +88,74 @@ class ConversationService:
         await self.session.refresh(turn)
         return turn
 
-    async def get_history(self, session_id: str) -> list[Message]:
-        """Get conversation history as Message list."""
+    async def get_history(
+        self,
+        session_id: str,
+        max_turns: int | None = None,
+        max_tokens: int | None = None,
+    ) -> list[Message]:
+        """Get conversation history as Message list.
+
+        Args:
+            session_id: Session ID to retrieve history for
+            max_turns: Maximum number of recent turns to return.
+                If None, returns all turns.
+            max_tokens: Maximum total tokens (approximate).
+                If set, truncates oldest messages first to fit budget.
+
+        Returns:
+            List of messages ordered by creation time.
+        """
         stmt = (
             select(TurnModel)
             .where(TurnModel.session_id == session_id)
-            .order_by(TurnModel.created_at)
+            .order_by(TurnModel.created_at.asc())
         )
-        result = await self.session.execute(stmt)
-        turns = result.scalars().all()
 
-        return [
+        result = await self.session.execute(stmt)
+        turns = list(result.scalars().all())
+
+        # Keep only the most recent N turns if max_turns is set
+        if max_turns and len(turns) > max_turns:
+            turns = turns[-max_turns:]
+
+        messages = [
             Message(role=Role(turn.role), content=turn.content)
             for turn in turns
         ]
+
+        if max_tokens and messages:
+            messages = self._truncate_by_tokens(messages, max_tokens)
+
+        return messages
+
+    def _truncate_by_tokens(
+        self, messages: list[Message], max_tokens: int
+    ) -> list[Message]:
+        """Truncate messages to fit token budget (oldest first)."""
+        try:
+            import tiktoken
+            encoder = tiktoken.get_encoding("cl100k_base")
+        except ImportError:
+            logger.warning("tiktoken not available, skipping token truncation")
+            return messages
+
+        result = []
+        total_tokens = 0
+        # Iterate in reverse (newest first) to keep recent context
+        for msg in reversed(messages):
+            token_count = len(encoder.encode(msg.content))
+            if total_tokens + token_count > max_tokens:
+                break
+            result.append(msg)
+            total_tokens += token_count
+
+        result.reverse()
+        if len(result) < len(messages):
+            logger.info(
+                "Truncated history from %d to %d messages (token budget: %d)",
+                len(messages),
+                len(result),
+                max_tokens,
+            )
+        return result
