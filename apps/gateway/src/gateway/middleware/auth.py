@@ -13,7 +13,11 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, api_keys: list[str] | None = None):  # type: ignore[override]
         super().__init__(app)
         self.api_keys = api_keys or []
-        self.public_paths = ["/health", "/docs", "/redoc", "/openapi.json"]
+        # With API keys configured, only /health stays public (docs are protected);
+        # without keys (local development), all of these remain public.
+        self.public_paths = ["/health"]
+        if not self.api_keys:
+            self.public_paths += ["/docs", "/redoc", "/openapi.json"]
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.url.path in self.public_paths:

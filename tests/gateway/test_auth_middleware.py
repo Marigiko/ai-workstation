@@ -54,3 +54,17 @@ def test_chat_requires_key_when_configured():
         assert resp.status_code == 401
     finally:
         os.environ.pop("API_KEYS", None)
+
+
+def test_docs_requires_key_when_configured():
+    """If API_KEYS is set, /docs is no longer public and returns 401 without a key."""
+    os.environ["API_KEYS"] = "test-key-123"
+    try:
+        app = create_app()
+        client = TestClient(app)
+        resp = client.get("/docs")
+        assert resp.status_code == 401
+        resp = client.get("/health")
+        assert resp.status_code == 200
+    finally:
+        os.environ.pop("API_KEYS", None)

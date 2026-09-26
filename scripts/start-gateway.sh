@@ -11,10 +11,22 @@ export DATABASE_URL="postgresql+asyncpg://awe:${AWE_PG_PASSWORD:?set AWE_PG_PASS
 export REDIS_URL="redis://localhost:6380/0"
 export QDRANT_URL="http://localhost:6335"
 
+GATEWAY_HOST="${GATEWAY_HOST:-127.0.0.1}"
+case "$GATEWAY_HOST" in
+    127.0.0.1|localhost|::1) ;;
+    *)
+        if [ -z "${API_KEYS:-}" ]; then
+            echo "ERROR: binding GATEWAY_HOST='$GATEWAY_HOST' without API_KEYS would expose the gateway unauthenticated." >&2
+            echo "Set API_KEYS or use GATEWAY_HOST=127.0.0.1." >&2
+            exit 1
+        fi
+        ;;
+esac
+
 echo "Starting AI Workstation Gateway..."
-echo "  Database: $DATABASE_URL"
+echo "  Database: $(printf '%s' "$DATABASE_URL" | sed -E 's#://([^:/@]+):[^@]*@#://\1:***@#')"
 echo "  Redis: $REDIS_URL"
 echo "  Qdrant: $QDRANT_URL"
 echo ""
 
-uv run uvicorn gateway.main:app --host 0.0.0.0 --port 8000 --app-dir apps/gateway/src
+uv run uvicorn gateway.main:app --host "$GATEWAY_HOST" --port 8000 --app-dir apps/gateway/src

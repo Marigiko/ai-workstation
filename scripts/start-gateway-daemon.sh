@@ -9,6 +9,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
+GATEWAY_HOST="${GATEWAY_HOST:-127.0.0.1}"
+case "$GATEWAY_HOST" in
+    127.0.0.1|localhost|::1) ;;
+    *)
+        if [ -z "${API_KEYS:-}" ]; then
+            echo "ERROR: binding GATEWAY_HOST='$GATEWAY_HOST' without API_KEYS would expose the gateway unauthenticated." >&2
+            echo "Set API_KEYS or use GATEWAY_HOST=127.0.0.1." >&2
+            exit 1
+        fi
+        ;;
+esac
+
 LOG_FILE="/tmp/gateway.log"
 PID_FILE="/tmp/gateway.pid"
 
@@ -24,16 +36,15 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 echo "Starting AI Workstation Gateway..."
-echo "  (litellm import takes ~25s on first start)"
 
 # Double-detach: setsid + nohup so the process survives shell exit
 (setsid nohup .venv/bin/uvicorn gateway.main:app \
-    --host 0.0.0.0 \
+    --host "$GATEWAY_HOST" \
     --port 8000 \
     --app-dir apps/gateway/src \
     > "$LOG_FILE" 2>&1 < /dev/null &)
 
-# Wait for startup (litellm import is slow)
+# Wait for startup
 for i in $(seq 1 30); do
     sleep 2
     if ss -tlnp 2>/dev/null | grep -q ':8000 '; then
@@ -48,6 +59,6 @@ for i in $(seq 1 30); do
     fi
 done
 
-echo "Gateway may still be starting (litellm import can take up to 40s)."
+echo "Gateway may still be starting."
 echo "Check logs: tail -f $LOG_FILE"
 echo "Check port: ss -tlnp | grep 8000"
