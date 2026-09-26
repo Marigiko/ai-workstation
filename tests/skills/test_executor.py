@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from mcp import ToolRegistry
-from providers import LiteLLMProvider
+from providers import BaseProvider
 from skills import SkillDefinition, SkillExecutionRequest, SkillExecutor
 
 from contracts import CompletionResponse, Role
@@ -13,7 +13,7 @@ from contracts import CompletionResponse, Role
 @pytest.fixture
 def mock_provider():
     """Create a mock provider."""
-    provider = Mock(spec=LiteLLMProvider)
+    provider = Mock(spec=BaseProvider)
     provider.complete = AsyncMock(
         return_value=CompletionResponse(
             id="test-123",

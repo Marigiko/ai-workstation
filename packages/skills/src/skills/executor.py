@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from mcp import ToolRegistry
-from providers import LiteLLMProvider
+from providers import BaseProvider
 
 from contracts import CompletionRequest, Message, Role
 from skills.models import (
@@ -25,7 +25,7 @@ class SkillExecutor:
 
     def __init__(
         self,
-        provider: LiteLLMProvider,
+        provider: BaseProvider,
         tool_registry: ToolRegistry,
         max_iterations: int = 10,
     ):

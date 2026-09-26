@@ -1,8 +1,10 @@
 """Skills endpoints for managing and executing skills."""
 
+import os
+
 from fastapi import APIRouter, HTTPException
 from mcp import ToolRegistry
-from providers import LiteLLMProvider
+from providers import OmniRouteProvider
 from pydantic import BaseModel
 from skills import (
     ALL_BUILTIN_SKILLS,
@@ -23,7 +25,7 @@ for skill in ALL_BUILTIN_SKILLS:
     _skill_registry.register(skill)
 
 # Initialize provider (will be configured via environment)
-_provider = LiteLLMProvider(model="gpt-4o-mini")
+_provider = OmniRouteProvider(model=os.getenv("DEFAULT_MODEL", "liviano"))
 _executor = SkillExecutor(_provider, _tool_registry)
 
 

@@ -1,7 +1,7 @@
 """Router endpoints."""
 
 from fastapi import APIRouter, HTTPException
-from providers import LiteLLMProvider
+from providers import OmniRouteProvider
 from routing import (
     CapabilityRouter,
     CostOptimizedRouter,
@@ -40,10 +40,9 @@ def _get_fallback_router(strategy: str = "cost") -> FallbackRouter:
 async def register_provider(
     name: str,
     model: str,
-    api_key: str | None = None,
 ):
-    """Register a provider."""
-    provider = LiteLLMProvider(model=model, api_key=api_key)
+    """Register a provider (gateway credentials come from the environment)."""
+    provider = OmniRouteProvider(model=model)
     _registry.register(provider)
     return {"registered": name, "model": model}
 

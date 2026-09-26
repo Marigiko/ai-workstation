@@ -3,6 +3,6 @@
 __version__ = "0.1.0"
 
 from providers.base import BaseProvider
-from providers.litellm_provider import LiteLLMProvider
+from providers.omniroute_provider import OmniRouteProvider
 
-__all__ = ["BaseProvider", "LiteLLMProvider"]
+__all__ = ["BaseProvider", "OmniRouteProvider"]

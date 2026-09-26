@@ -5,6 +5,8 @@ import os
 import httpx
 import pytest
 
+pytestmark = pytest.mark.live
+
 GATEWAY_URL = "http://localhost:8000"
 
 _HAS_CHAT_KEYS = bool(

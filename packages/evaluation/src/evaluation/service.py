@@ -3,7 +3,7 @@
 import time
 import uuid
 
-from providers import LiteLLMProvider
+from providers import BaseProvider
 
 from evaluation.evaluators import (
     CompletenessEvaluator,
@@ -27,7 +27,7 @@ from evaluation.registry import EvaluatorRegistry
 class EvaluationService:
     """Service for coordinating evaluations."""
 
-    def __init__(self, provider: LiteLLMProvider):
+    def __init__(self, provider: BaseProvider):
         """Initialize evaluation service with LLM provider."""
         self.provider = provider
         self.registry = EvaluatorRegistry()

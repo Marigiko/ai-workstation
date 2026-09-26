@@ -1,5 +1,6 @@
 """FastAPI application factory."""
 
+import logging
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -13,7 +14,7 @@ from conversation import async_session_factory, close_db, init_db
 from fastapi import FastAPI
 from observability import ObservabilityService
 from pipeline import PipelineService
-from providers import LiteLLMProvider
+from providers import OmniRouteProvider
 from routing import ProviderRegistry
 from routing.unified_router import UnifiedRouter
 from skills import SkillRegistry
@@ -35,22 +36,19 @@ from gateway.routes import (
 from gateway.routes import openai as openai_routes
 from gateway.routes import router as router_routes
 
+logger = logging.getLogger(__name__)
+
 
 def _create_pipeline() -> PipelineService:
     """Create and configure the pipeline service."""
     registry = ProviderRegistry()
 
-    gemini_key = os.getenv("GOOGLE_API_KEY")
-    if gemini_key:
-        registry.register(LiteLLMProvider(model="gemini/gemini-2.5-flash", api_key=gemini_key))
-
-    claude_key = os.getenv("ANTHROPIC_API_KEY")
-    if claude_key:
-        registry.register(LiteLLMProvider(model="claude-sonnet-4-20250514", api_key=claude_key))
-
-    openai_key = os.getenv("OPENAI_API_KEY")
-    if openai_key:
-        registry.register(LiteLLMProvider(model="gpt-4o", api_key=openai_key))
+    gateway_key = os.getenv("OMNIROUTE_API_KEY")
+    if not gateway_key:
+        logger.warning(
+            "OMNIROUTE_API_KEY is not set; no LLM providers will be registered. "
+            "All completion endpoints will fail until it is configured."
+        )
 
     # Unified router: capability filter + cost + latency scoring
     unified_router = UnifiedRouter(
@@ -60,12 +58,13 @@ def _create_pipeline() -> PipelineService:
         tier_weight=0.3,
     )
     # Set provider tiers (0=free, 1=budget, 2=standard, 3=premium)
-    if gemini_key:
-        unified_router.set_provider_tier("gemini/gemini-2.5-flash", tier=0)  # free tier
-    if claude_key:
-        unified_router.set_provider_tier("claude-sonnet-4-20250514", tier=3)  # premium
-    if openai_key:
-        unified_router.set_provider_tier("gpt-4o", tier=2)  # standard
+    if gateway_key:
+        models_env = os.getenv("OMNIROUTE_MODELS", "liviano,agente")
+        for model in [m.strip() for m in models_env.split(",") if m.strip()]:
+            provider = OmniRouteProvider(model=model)
+            registry.register(provider)
+            tier = 0 if model == "liviano" else 1 if model == "agente" else 2
+            unified_router.set_provider_tier(provider.name, tier=tier)
 
     observability_service = ObservabilityService(session_factory=async_session_factory)
 

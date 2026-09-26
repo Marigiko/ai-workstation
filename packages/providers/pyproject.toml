@@ -5,7 +5,7 @@ description = "AI Workstation providers package"
 requires-python = ">=3.11"
 dependencies = [
     "contracts",
-    "litellm>=1.40.0",
+    "httpx>=0.27",
 ]
 
 [tool.uv.sources]

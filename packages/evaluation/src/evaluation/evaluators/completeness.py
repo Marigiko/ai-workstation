@@ -2,7 +2,7 @@
 
 import uuid
 
-from providers import LiteLLMProvider
+from providers import BaseProvider
 
 from evaluation.models import EvalMetric, EvalRequest, EvalResult
 
@@ -10,7 +10,7 @@ from evaluation.models import EvalMetric, EvalRequest, EvalResult
 class CompletenessEvaluator:
     """Evaluator for measuring if response covers all aspects of query."""
 
-    def __init__(self, provider: LiteLLMProvider):
+    def __init__(self, provider: BaseProvider):
         """Initialize with LLM provider."""
         self.provider = provider
 

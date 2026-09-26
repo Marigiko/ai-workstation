@@ -6,10 +6,17 @@ DEFAULT_AGENTS: dict[str, AgentModelConfig] = {
     "code": AgentModelConfig(
         agent_type="code",
         tiers=[
-            Tier(name="free", models=["gemini/gemini-2.5-flash"], token_budget=500_000),
+            Tier(
+                name="free",
+                models=[
+                    "omniroute/agente",
+                    "omniroute/liviano",
+                ],
+                token_budget=500_000,
+            ),
             Tier(
                 name="paid",
-                models=["claude-sonnet-4-20250514", "gpt-4o"],
+                models=["omniroute/agente", "omniroute/liviano"],
                 token_budget=-1,
             ),
         ],
@@ -17,10 +24,17 @@ DEFAULT_AGENTS: dict[str, AgentModelConfig] = {
     "docs": AgentModelConfig(
         agent_type="docs",
         tiers=[
-            Tier(name="free", models=["gemini/gemini-2.5-flash"], token_budget=300_000),
+            Tier(
+                name="free",
+                models=[
+                    "omniroute/liviano",
+                    "omniroute/agente",
+                ],
+                token_budget=300_000,
+            ),
             Tier(
                 name="paid",
-                models=["claude-sonnet-4-20250514", "gpt-4o-mini"],
+                models=["omniroute/liviano", "omniroute/agente"],
                 token_budget=-1,
             ),
         ],
@@ -28,10 +42,17 @@ DEFAULT_AGENTS: dict[str, AgentModelConfig] = {
     "planning": AgentModelConfig(
         agent_type="planning",
         tiers=[
-            Tier(name="free", models=["gemini/gemini-2.5-pro"], token_budget=200_000),
+            Tier(
+                name="free",
+                models=[
+                    "omniroute/agente",
+                    "omniroute/liviano",
+                ],
+                token_budget=200_000,
+            ),
             Tier(
                 name="paid",
-                models=["claude-sonnet-4-20250514", "o3-mini"],
+                models=["omniroute/agente", "omniroute/liviano"],
                 token_budget=-1,
             ),
         ],
@@ -39,10 +60,17 @@ DEFAULT_AGENTS: dict[str, AgentModelConfig] = {
     "review": AgentModelConfig(
         agent_type="review",
         tiers=[
-            Tier(name="free", models=["gemini/gemini-2.5-pro"], token_budget=200_000),
+            Tier(
+                name="free",
+                models=[
+                    "omniroute/agente",
+                    "omniroute/liviano",
+                ],
+                token_budget=200_000,
+            ),
             Tier(
                 name="paid",
-                models=["claude-sonnet-4-20250514", "gpt-4o"],
+                models=["omniroute/agente", "omniroute/liviano"],
                 token_budget=-1,
             ),
         ],
@@ -50,10 +78,17 @@ DEFAULT_AGENTS: dict[str, AgentModelConfig] = {
     "debug": AgentModelConfig(
         agent_type="debug",
         tiers=[
-            Tier(name="free", models=["gemini/gemini-2.5-pro"], token_budget=300_000),
+            Tier(
+                name="free",
+                models=[
+                    "omniroute/agente",
+                    "omniroute/liviano",
+                ],
+                token_budget=300_000,
+            ),
             Tier(
                 name="paid",
-                models=["claude-sonnet-4-20250514", "o3-mini"],
+                models=["omniroute/agente", "omniroute/liviano"],
                 token_budget=-1,
             ),
         ],
@@ -61,10 +96,17 @@ DEFAULT_AGENTS: dict[str, AgentModelConfig] = {
     "test": AgentModelConfig(
         agent_type="test",
         tiers=[
-            Tier(name="free", models=["gemini/gemini-2.5-flash"], token_budget=300_000),
+            Tier(
+                name="free",
+                models=[
+                    "omniroute/liviano",
+                    "omniroute/agente",
+                ],
+                token_budget=300_000,
+            ),
             Tier(
                 name="paid",
-                models=["claude-sonnet-4-20250514", "gpt-4o-mini"],
+                models=["omniroute/liviano", "omniroute/agente"],
                 token_budget=-1,
             ),
         ],
@@ -72,10 +114,17 @@ DEFAULT_AGENTS: dict[str, AgentModelConfig] = {
     "general": AgentModelConfig(
         agent_type="general",
         tiers=[
-            Tier(name="free", models=["gemini/gemini-2.5-flash"], token_budget=500_000),
+            Tier(
+                name="free",
+                models=[
+                    "omniroute/agente",
+                    "omniroute/liviano",
+                ],
+                token_budget=500_000,
+            ),
             Tier(
                 name="paid",
-                models=["claude-sonnet-4-20250514", "gpt-4o"],
+                models=["omniroute/agente", "omniroute/liviano"],
                 token_budget=-1,
             ),
         ],

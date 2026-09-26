@@ -4,7 +4,10 @@ import subprocess
 
 import asyncpg
 import httpx
+import pytest
 import redis
+
+pytestmark = pytest.mark.live
 
 
 async def test_postgres_reachable():

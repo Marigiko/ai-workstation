@@ -4,7 +4,7 @@ import os
 
 from evaluation import EvalMetric, EvalRequest, EvaluationService
 from fastapi import APIRouter, HTTPException
-from providers import LiteLLMProvider
+from providers import OmniRouteProvider
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/evaluation", tags=["evaluation"])
@@ -17,9 +17,8 @@ def _get_evaluation_service() -> EvaluationService:
     """Get or create the evaluation service."""
     global _evaluation_service
     if _evaluation_service is None:
-        model = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
-        api_key = os.getenv("OPENAI_API_KEY")
-        provider = LiteLLMProvider(model=model, api_key=api_key)
+        model = os.getenv("DEFAULT_MODEL", "liviano")
+        provider = OmniRouteProvider(model=model)
         _evaluation_service = EvaluationService(provider)
     return _evaluation_service
 

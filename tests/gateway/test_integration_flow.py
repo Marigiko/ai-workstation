@@ -31,6 +31,7 @@ def test_full_chat_roundtrip():
     assert "content" in body["choices"][0]["message"]
 
 
+@pytest.mark.live
 def test_memory_recall_endpoint():
     """Simula el flujo de inyeccion de memoria de Terax."""
     resp = httpx.post(
@@ -42,6 +43,7 @@ def test_memory_recall_endpoint():
     assert "memories" in resp.json()
 
 
+@pytest.mark.live
 def test_openai_models_compatibility():
     """Verifica compatibilidad OpenAI SDK para consumers del gateway."""
     resp = httpx.get(f"{GATEWAY_URL}/v1/models", timeout=5)

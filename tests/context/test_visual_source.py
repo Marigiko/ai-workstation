@@ -26,12 +26,14 @@ def test_custom_server_url():
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_search_returns_empty_on_connection_error(source):
     chunks = await source.search("test query", top_k=3)
     assert chunks == []
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_gather_returns_empty_on_connection_error(source):
     query = ContextQuery(project_id="test", query="test query")
     result = await source.gather(query)
@@ -50,6 +52,7 @@ async def test_index_returns_status(source):
 
 
 @pytest.mark.asyncio
+@pytest.mark.live
 async def test_render_url_returns_empty_on_error(source):
     tiles_dir = await source.render_url("https://example.com")
     assert tiles_dir == ""

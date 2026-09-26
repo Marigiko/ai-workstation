@@ -7,7 +7,7 @@ routing each sub-task to the appropriate specialized agent.
 import logging
 from typing import Any
 
-from providers import LiteLLMProvider
+from providers import BaseProvider
 from routing import AgentRouter
 
 from contracts import CompletionRequest, Message, Role
@@ -34,7 +34,7 @@ class TaskOrchestrator:
 
     def __init__(
         self,
-        provider: LiteLLMProvider,
+        provider: BaseProvider,
         agent_router: AgentRouter,
         max_steps: int = 10,
     ):
