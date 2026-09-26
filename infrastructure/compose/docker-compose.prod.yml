@@ -73,10 +73,13 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-ai_workstation}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-ai_workstation}
       - REDIS_URL=redis://redis:6379
       - QDRANT_URL=http://qdrant:6333
-      - DEFAULT_MODEL=${DEFAULT_MODEL:-gpt-4}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - API_KEYS=${API_KEYS:-}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-liviano}
+      - OMNIROUTE_MODELS=${OMNIROUTE_MODELS:-liviano,agente}
+      - OMNIROUTE_API_KEY=${OMNIROUTE_API_KEY:?set OMNIROUTE_API_KEY in .env}
+      - OMNIROUTE_BASE_URL=${OMNIROUTE_BASE_URL:-http://host.docker.internal:20128/v1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
